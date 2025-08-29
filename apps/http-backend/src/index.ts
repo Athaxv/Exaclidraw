@@ -1,11 +1,19 @@
 import express from "express"
+// Update the import path below to the correct relative path where signinSchema is defined, for example:
+import signinSchema from "../../common/src/types"
+// If signinSchema is not the default export, use:
+// import { signinSchema } from "../../common/src/types";
 const app = express()
 
 app.use(express.json());
 
 app.post('/auth/v1/signin', function (req, res){
-    const name = req.body.name;
-    const password = req.body.password;
+    const data = signinSchema.safeParse(req.body)
+    if (!data.success){
+        res.json({
+            message: "Incorrect input given"
+        })
+    }
 
     // check the user
 
