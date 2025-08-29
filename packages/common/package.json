@@ -1,0 +1,21 @@
+{
+  "name": "@repo/common",
+  "version": "1.0.0",
+  "main": "index.js",
+  "exports": {
+    "./types": "./src/types"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "zod": "^4.1.5"
+  }
+}
