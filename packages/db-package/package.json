@@ -1,0 +1,18 @@
+{
+  "name": "@repo/db",
+  "version": "1.0.0",
+  "main": "index.js",
+  "exports": {
+    "./db": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
