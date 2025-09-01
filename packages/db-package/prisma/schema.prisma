@@ -10,10 +10,10 @@ datasource db {
 
 model User {
   id       String @id @default(uuid())
-  email    String
+  email    String @unique
   password String
   username String
-  photo    String
+  photo    String?
   rooms    Room[]
   chat     chat[]
 }
