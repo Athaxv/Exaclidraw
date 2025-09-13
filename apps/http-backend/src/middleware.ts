@@ -15,7 +15,7 @@ export async function middleware(req: Request, res: Response, next: NextFunction
     const token = req.headers["authorization"] ?? "";
 
     const decode = jwt.verify(token, JWT_SECRET)
-
+    console.log("Decode", decode)
     if (decode){
       // @ts-ignore
         req.userId = decode.userId;
