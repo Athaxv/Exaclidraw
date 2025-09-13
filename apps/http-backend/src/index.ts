@@ -4,6 +4,8 @@ import express from "express"
 import { signinSchema, createUserSchema, createRoomSchema } from "@repo/common/types";
 import { prismaClient } from "@repo/db/client"
 import { middleware } from "./middleware.js";
+import jwt from "jsonwebtoken"
+import { JWT_SECRET } from "@repo/backend-common/config";
 
 const app = express()
 
@@ -29,11 +31,14 @@ app.post('/auth/v1/signin', async function (req, res) {
                 message: 'No user exists with this email'
             })
         }
+        const token = jwt.sign({ userId: checkuser?.id, email: checkuser?.email }, JWT_SECRET);
+        console.log("Token", token)
         console.log(checkuser)
         // check the user
 
         return res.json({
-            userId: checkuser
+            userId: token,
+            checkuser
         })
     } catch (error) {
         res.json({
@@ -59,7 +64,7 @@ app.post('/auth/v1/signup', async function (req, res) {
     console.log(new_user);
 
     return res.json({
-        message: 'User logged successfully'
+        message: 'User signed successfully'
     })
 })
 
@@ -123,7 +128,7 @@ app.get('/room/:slug', async function (req, res) {
     })
 
     res.json({
-        slug
+        room
     })
 })
 
