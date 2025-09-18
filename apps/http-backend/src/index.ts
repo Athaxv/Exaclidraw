@@ -6,10 +6,12 @@ import { prismaClient } from "@repo/db/client"
 import { middleware } from "./middleware.js";
 import jwt from "jsonwebtoken"
 import { JWT_SECRET } from "@repo/backend-common/config";
+import cors from "cors";
 
 const app = express()
 
 app.use(express.json());
+app.use(cors());
 
 app.post('/auth/v1/signin', async function (req, res) {
     try {
@@ -38,7 +40,6 @@ app.post('/auth/v1/signin', async function (req, res) {
 
         return res.json({
             userId: token,
-            checkuser
         })
     } catch (error) {
         res.json({
