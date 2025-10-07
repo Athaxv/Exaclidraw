@@ -3,6 +3,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.caveat {
+  font-family: var(--font-caveat);
+}
+
+.virgil {
+  font-family: var(--font-virgil);
+}
+
+.excalifont {
+  font-family: var(--font-excalifont);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

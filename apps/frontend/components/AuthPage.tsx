@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Mail, Github, X, ArrowRight, ChevronLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 type AuthMode = 'welcome' | 'email' | 'signup';
 
@@ -12,6 +13,7 @@ interface FormData {
 }
 
 const AuthPage: React.FC = () => {
+  const router = useRouter();
   const [authMode, setAuthMode] = useState<AuthMode>('welcome');
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -43,17 +45,59 @@ const AuthPage: React.FC = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  
+   const handleSignin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
 
+    try {
+      const resp = await fetch('/auth/v1/signin', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      const data = await resp.json();
+      console.log(data);
+      if (resp.ok){
+        router.push('/')
+      }
+    } catch (error) {
+      console.log("Error signing in", error);
+    }
+    finally {
+      setIsLoading(false);
+    }
+   }
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
     
     setIsLoading(true);
     // Simulate API call
-    setTimeout(() => {
+
+    try {
+      const resp = await fetch('/auth/v1/signup', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      const data = await resp.json();
+      console.log(data);
+      if (resp.ok) {
+        router.push('/signin');
+      }
+    } catch (error) {
+      console.log("Error", error);
+    }
+    finally {
       setIsLoading(false);
-      console.log('Form submitted:', formData);
-    }, 2000);
+    }
+
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,7 +304,7 @@ const AuthPage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={handleSubmit}
+                  onClick={handleSignin}
                   disabled={isLoading}
                   className="w-full py-3.5 px-4 bg-white text-black rounded-xl font-medium hover:bg-gray-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
