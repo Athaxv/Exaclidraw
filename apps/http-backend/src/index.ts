@@ -59,7 +59,7 @@ app.post('/auth/v1/signup', async function (req, res) {
         data: {
             email: parseddata.data.email,
             password: parseddata.data.password,
-            username: parseddata.data.username
+            username: parseddata.data.name
         }
     })
     console.log(new_user);
