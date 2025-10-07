@@ -1,7 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async rewrites() {
+    return [
+      {
+        source: "/auth/v1/:path*",
+        destination: "http://localhost:5000/auth/v1/:path*",
+      },
+      {
+        source: "/room/:path*",
+        destination: "http://localhost:5000/room/:path*",
+      },
+      {
+        source: "/chat/:path*",
+        destination: "http://localhost:5000/chat/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
