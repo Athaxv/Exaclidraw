@@ -37,11 +37,11 @@ const DATA = {
     { href: "#", icon: PencilIcon, label: "Blog" },
   ],
   shapes: [
-    { icon: Icons.rectangle, label: "rect" },
-    { icon: Icons.ellipse, label: "Ellipse" },
-    { icon: Icons.diamond, label: "Diamond" },
-    { icon: Icons.arrow, label: "circle" },
-    { icon: Icons.line, label: "pencil" },
+    { icon: Icons.rectangle, label: "rect" as Shape },
+    { icon: Icons.ellipse, label: "Ellipse" as Shape },
+    { icon: Icons.diamond, label: "diamond" as Shape },
+    { icon: Icons.arrow, label: "circle" as Shape },
+    { icon: Icons.line, label: "pencil" as Shape },
   ]
 //   contact: {
 //     social: {
@@ -72,7 +72,7 @@ const DATA = {
 
 
 // Define the Shape type based on your shape labels
-type Shape = "rect" | "Ellipse" | "Diamond" | "circle" | "pencil";
+type Shape = "rect" | "Ellipse" | "diamond" | "circle" | "pencil";
 
 export function Dockbar({ selectedShape, setSelectedShape }: {
     selectedShape: Shape,

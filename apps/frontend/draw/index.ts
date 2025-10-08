@@ -18,6 +18,12 @@ type Shape = {
     startY: number;
     endX: number;
     endY: number;
+} | {
+    type: "diamond";
+    centerX: number;
+    centerY: number;
+    width: number;
+    height: number;
 }
 
 export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket) {
@@ -75,8 +81,27 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
                 radius: radius
             };
         }
+        else if (selectedShape === "pencil") {
+            shape = {
+                type: "pencil",
+                startX: startX,
+                startY: startY,
+                endX: e.clientX,
+                endY: e.clientY
+            }
+        }
+        else if (selectedShape === "diamond") {
+            shape = {
+                type: "diamond",
+                centerX: (startX + e.clientX) / 2,
+                centerY: (startY + e.clientY) / 2,
+                width: width,
+                height: height
+            }
+        }
+
         console.log("shape", shape);
-        if (!shape){
+        if (!shape) {
             return;
         }
 
@@ -110,6 +135,36 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
                 ctx.stroke();
                 ctx.closePath();
             }
+            else if (selectedShape === "pencil") {
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(e.clientX, e.clientY);
+                ctx.stroke();
+                ctx.closePath();
+            }
+            else if (selectedShape === "diamond") {
+                const centerX = (startX + e.clientX) / 2;
+                const centerY = (startY + e.clientY) / 2;
+                const width = Math.abs(e.clientX - startX);
+                const height = Math.abs(e.clientY - startY);
+
+                const halfWidth = width / 2;
+                const halfHeight = height / 2;
+
+                // Four corners of the diamond
+                const top = { x: centerX, y: centerY - halfHeight };
+                const right = { x: centerX + halfWidth, y: centerY };
+                const bottom = { x: centerX, y: centerY + halfHeight };
+                const left = { x: centerX - halfWidth, y: centerY };
+
+                ctx.beginPath();
+                ctx.moveTo(top.x, top.y);
+                ctx.lineTo(right.x, right.y);
+                ctx.lineTo(bottom.x, bottom.y);
+                ctx.lineTo(left.x, left.y);
+                ctx.closePath();
+                ctx.stroke();
+            }
         }
     })
 }
@@ -129,6 +184,36 @@ function clearCanvas(canvas: HTMLCanvasElement, existingShapes: Shape[], ctx: Ca
             ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, Math.PI * 2);
             ctx.stroke();
             ctx.closePath();
+        }
+        else if (shape.type === "pencil") {
+            ctx.strokeStyle = "rgba(255, 255, 255)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(shape.startX, shape.startY);
+            ctx.lineTo(shape.endX, shape.endY);
+            ctx.stroke();
+            ctx.closePath();
+        }
+        else if (shape.type === "diamond"){
+            ctx.strokeStyle = "rgba(255, 255, 255)";
+    ctx.lineWidth = 2;
+
+    const halfWidth = shape.width / 2;
+    const halfHeight = shape.height / 2;
+
+    // Four corners of the diamond
+    const top = { x: shape.centerX, y: shape.centerY - halfHeight };
+    const right = { x: shape.centerX + halfWidth, y: shape.centerY };
+    const bottom = { x: shape.centerX, y: shape.centerY + halfHeight };
+    const left = { x: shape.centerX - halfWidth, y: shape.centerY };
+
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y);
+    ctx.lineTo(right.x, right.y);
+    ctx.lineTo(bottom.x, bottom.y);
+    ctx.lineTo(left.x, left.y);
+    ctx.closePath();
+    ctx.stroke();
         }
     })
 }
