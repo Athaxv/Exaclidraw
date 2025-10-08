@@ -184,7 +184,10 @@ export function Component({
             >
                 <div className="md:text-6xl text-5xl lg:text-7xl font-bold text-center text-foreground relative z-20">
                 <h1 >Excalidraw</h1>
+                <div className='gap-2'>
                 <Button variant={'outline'} onClick={() => router.push('/signin')}>Get Started</Button>
+                <Button>Create room</Button>
+                </div>
                 </div>
             </div>
 
