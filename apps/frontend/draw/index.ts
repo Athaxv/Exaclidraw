@@ -24,6 +24,12 @@ type Shape = {
     centerY: number;
     width: number;
     height: number;
+} | {
+    type: "arrow";
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
 }
 
 export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket) {
@@ -97,6 +103,15 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
                 centerY: (startY + e.clientY) / 2,
                 width: width,
                 height: height
+            }
+        }
+        else if (selectedShape === "arrow") {
+            shape = {
+                type: "arrow",
+                startX: startX,
+                startY: startY,
+                endX: e.clientX,
+                endY: e.clientY
             }
         }
 

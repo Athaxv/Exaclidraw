@@ -3,7 +3,7 @@
 import { CalendarIcon, HomeIcon, MailIcon, PencilIcon } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-import { SquareIcon, CircleIcon, DiamondIcon, ArrowRightIcon, LineChartIcon } from "lucide-react";
+import { SquareIcon, CircleIcon, DiamondIcon, ArrowRightIcon, LineChartIcon, MousePointerIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -25,9 +25,11 @@ const Icons = {
   // ...existing icons...
   rectangle: (props: IconProps) => <SquareIcon {...props} />,
   ellipse: (props: IconProps) => <CircleIcon {...props} />,
+  circle: (props: IconProps) => <CircleIcon {...props} />,
   diamond: (props: IconProps) => <DiamondIcon {...props} />,
   arrow: (props: IconProps) => <ArrowRightIcon {...props} />,
   line: (props: IconProps) => <LineChartIcon {...props} />,
+  free: (props: IconProps) => <MousePointerIcon {...props} />,
   // ...existing code...
 };
 
@@ -40,8 +42,10 @@ const DATA = {
     { icon: Icons.rectangle, label: "rect" as Shape },
     { icon: Icons.ellipse, label: "Ellipse" as Shape },
     { icon: Icons.diamond, label: "diamond" as Shape },
-    { icon: Icons.arrow, label: "circle" as Shape },
+    { icon: Icons.circle, label: "circle" as Shape },
     { icon: Icons.line, label: "pencil" as Shape },
+    { icon: Icons.arrow, label: "arrow" as Shape },
+    { icon: Icons.free, label: "free" as Shape },
   ]
 //   contact: {
 //     social: {
@@ -72,7 +76,7 @@ const DATA = {
 
 
 // Define the Shape type based on your shape labels
-type Shape = "rect" | "Ellipse" | "diamond" | "circle" | "pencil";
+type Shape = "rect" | "Ellipse" | "diamond" | "circle" | "pencil" | "arrow" | "free";
 
 export function Dockbar({ selectedShape, setSelectedShape }: {
     selectedShape: Shape,
