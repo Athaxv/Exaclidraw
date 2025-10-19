@@ -61,7 +61,41 @@ const AuthPage: React.FC = () => {
       const data = await resp.json();
       console.log(data);
       if (resp.ok){
-        router.push('/')
+        const { userId: token } = data; // backend returns token in userId
+        localStorage.setItem('auth_token', token);
+        
+        // Create a new room after successful signin
+        try {
+          const roomResp = await fetch('/room', {
+            method: 'POST',
+            body: JSON.stringify({ 
+              username: formData.email.split('@')[0] // use email prefix as slug
+            }),
+            headers: {
+              'Content-Type': 'application/json',
+              'authorization': `${token}`
+            }
+          });
+          console.log("Room Response", roomResp);
+          const roomData = await roomResp.json();
+          console.log("Room Data", roomData);
+          console.log('Room created:', roomData);
+          
+          if (roomResp.ok) {
+            const newRoomId = roomData.message.id;
+            router.push(`/canvas/${newRoomId}`);
+          } else {
+            console.error('Failed to create room:', roomData);
+            // Fallback to random room if room creation fails
+            const fallbackRoomId = Math.random().toString(36).substring(2, 15);
+            router.push(`/canvas/${fallbackRoomId}`);
+          }
+        } catch (roomError) {
+          console.error('Error creating room:', roomError);
+          // Fallback to random room if room creation fails
+          const fallbackRoomId = Math.random().toString(36).substring(2, 15);
+          router.push(`/canvas/${fallbackRoomId}`);
+        }
       }
     } catch (error) {
       console.log("Error signing in", error);

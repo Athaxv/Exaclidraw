@@ -19,14 +19,38 @@ import {
 } from "@/components/ui/sidebar";
 import { HomeIcon, SettingsIcon, PaletteIcon, DownloadIcon, ShareIcon, SunIcon, MoonIcon, Pencil, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 
-type Shape = "rect" | "Ellipse" | "diamond" | "circle" | "pencil" | "arrow" | "free" | "text" | "eraser";
+type Shape = "rect" | "diamond" | "circle" | "pencil" | "arrow" | "free" | "text" | "eraser";
 
 export function DemoCanvas(){
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [ selectedShape, setSelectedShape ] = useState<Shape>("rect");
     const [ showWelcome, setShowWelcome ] = useState(true);
     const { theme, setTheme } = useTheme();
+    const router = useRouter();
+
+    // Collaboration dialog state
+    const [showCollabDialog, setShowCollabDialog] = useState(false);
+    const [collabMode, setCollabMode] = useState<"create" | "join">("create");
+    const [username, setUsername] = useState("");
+    const [roomId, setRoomId] = useState("");
+    const [roomSlug, setRoomSlug] = useState("");
+
+    // Auth check via backend /me endpoint
+    const checkAuth = async (): Promise<boolean> => {
+        try {
+            const token = localStorage.getItem('auth_token') || '';
+            const res = await fetch('http://localhost:5000/me', { 
+                headers: { Authorization: token }
+            });
+            return res.ok;
+        } catch (_) {
+            return false;
+        }
+    };
 
     useEffect(() => {
         //@ts-expect-error - selectedShape is set on window object
@@ -280,8 +304,15 @@ export function DemoCanvas(){
 
                {/* Buttons */}
                <div className="space-y-2 sm:space-y-3">
-                 <button
-                   onClick={() => setShowWelcome(false)}
+                <button
+                  onClick={async () => {
+                    const authed = await checkAuth();
+                    if (!authed) {
+                      router.push('/signin');
+                      return;
+                    }
+                    setShowCollabDialog(true);
+                  }}
                    className="w-full flex items-center justify-start gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 group"
                  >
                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -293,8 +324,8 @@ export function DemoCanvas(){
                    <span className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300">Live collaboration</span>
                  </button>
                  
-                 <button
-                   onClick={() => setShowWelcome(false)}
+                <button
+                  onClick={() => router.push('/signup')}
                    className="w-full flex items-center justify-start gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 group"
                  >
                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -327,6 +358,104 @@ export function DemoCanvas(){
         <span className="text-xs sm:text-sm font-medium px-1 sm:px-2">100%</span>
         <button className="px-1.5 sm:px-2 py-0.5 sm:py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs sm:text-sm">+</button>
       </div>
+
+      {/* Live Collaboration Dialog */}
+      <Dialog open={showCollabDialog} onOpenChange={setShowCollabDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Live Collaboration</DialogTitle>
+            <DialogDescription>
+              Start a new collaborative session or join an existing one.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCollabMode("create")}
+                className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
+                  collabMode === "create"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                Create Room
+              </button>
+              <button
+                onClick={() => setCollabMode("join")}
+                className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
+                  collabMode === "join"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                Join Room
+              </button>
+            </div>
+
+            {collabMode === "create" && (
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">Your Name</label>
+                  <Input id="username" placeholder="Enter your name" value={username} onChange={(e) => setUsername(e.target.value)} className="mt-1" />
+                </div>
+                <button
+                  onClick={async () => {
+                    const authed = await checkAuth();
+                    if (!authed) { router.push('/signin'); return; }
+                    if (username.trim()) {
+                      const token = localStorage.getItem('auth_token') || '';
+                      const resp = await fetch('http://localhost:5000/room', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: token },
+                        body: JSON.stringify({ username })
+                      });
+                      const data = await resp.json();
+                      const roomId = data?.message?.id; // prisma returns numeric id
+                      router.push(`/canvas/${roomId}?username=${encodeURIComponent(username)}`);
+                    }
+                  }}
+                  disabled={!username.trim()}
+                  className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Create Room
+                </button>
+              </div>
+            )}
+
+            {collabMode === "join" && (
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="roomslug" className="text-sm font-medium text-gray-700 dark:text-gray-300">Room Username</label>
+                  <Input id="roomslug" placeholder="Enter room username" value={roomSlug} onChange={(e) => setRoomSlug(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <label htmlFor="join-username" className="text-sm font-medium text-gray-700 dark:text-gray-300">Your Name</label>
+                  <Input id="join-username" placeholder="Enter your name" value={username} onChange={(e) => setUsername(e.target.value)} className="mt-1" />
+                </div>
+                <button
+                  onClick={async () => {
+                    const authed = await checkAuth();
+                    if (!authed) { router.push('/signin'); return; }
+                    if (roomSlug.trim() && username.trim()) {
+                      const resp = await fetch(`http://localhost:5000/room/${roomSlug}`);
+                      const data = await resp.json();
+                      const roomId = data?.room?.id;
+                      if (roomId) {
+                        router.push(`/canvas/${roomId}?username=${encodeURIComponent(username)}`);
+                      }
+                    }
+                  }}
+                  disabled={!roomSlug.trim() || !username.trim()}
+                  className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Join Room
+                </button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
                 </SidebarInset>
             </div>
