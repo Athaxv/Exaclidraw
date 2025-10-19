@@ -212,11 +212,11 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
 
     if (!socket) {
         return (
-            <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
-                    <p className="text-gray-600 dark:text-gray-300">Connecting to the server...</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Make sure the WebSocket server is running on port 8080</p>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Connecting to the server...</p>
+                    <p className="text-sm text-muted-foreground mt-2">Make sure the WebSocket server is running on port 8080</p>
                 </div>
         </div>
         );
@@ -224,7 +224,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
 
     return (
         <SidebarProvider defaultOpen={false}>
-            <div className="flex w-full h-screen bg-white dark:bg-gray-900">
+            <div className="flex w-full h-screen bg-background">
                 <Sidebar>
                     {isAuthenticated ? (
                         // Authenticated sidebar content
@@ -424,7 +424,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
                                 <div className="p-2 pt-2">
                                     <button
                                         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 transition-colors drop-shadow-lg"
+                                        className="flex items-center gap-2 px-3 py-2 rounded-md bg-card/90 backdrop-blur-sm hover:bg-card transition-colors drop-shadow-lg"
                                         title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
                                     >
                                         {theme === "dark" ? (
@@ -451,17 +451,17 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
                         ></canvas>
 
                         {/* Zoom controls - Bottom left */}
-                        <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-30 flex items-center gap-1 sm:gap-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 drop-shadow-lg">
-                            <button className="px-1.5 sm:px-2 py-0.5 sm:py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs sm:text-sm">−</button>
+                        <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-30 flex items-center gap-1 sm:gap-2 bg-card/90 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 drop-shadow-lg">
+                            <button className="px-1.5 sm:px-2 py-0.5 sm:py-1 hover:bg-muted rounded text-xs sm:text-sm">−</button>
                             <span className="text-xs sm:text-sm font-medium px-1 sm:px-2">100%</span>
-                            <button className="px-1.5 sm:px-2 py-0.5 sm:py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs sm:text-sm">+</button>
+                            <button className="px-1.5 sm:px-2 py-0.5 sm:py-1 hover:bg-muted rounded text-xs sm:text-sm">+</button>
                         </div>
 
                         {/* Share button - Bottom right */}
                         <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-30">
                             <button
                                 onClick={handleShare}
-                                className="flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 transition-colors drop-shadow-lg rounded-lg"
+                                className="flex items-center gap-2 px-3 py-2 bg-card/90 backdrop-blur-sm hover:bg-card transition-colors drop-shadow-lg rounded-lg"
                                 title="Share room URL"
                             >
                                 <ShareIcon className="h-4 w-4" />

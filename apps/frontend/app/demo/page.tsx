@@ -153,7 +153,7 @@ export function DemoCanvas(){
 
     return (
         <SidebarProvider defaultOpen={false}>
-            <div className="flex w-full h-screen bg-white dark:bg-gray-900">
+            <div className="flex w-full h-screen bg-background">
                 <Sidebar>
                     {isAuthenticated ? (
                         // Authenticated sidebar content
@@ -363,7 +363,7 @@ export function DemoCanvas(){
           <div className="p-2 pt-2">
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex items-center gap-2 px-3 py-2 rounded-md bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 transition-colors drop-shadow-lg"
+              className="flex items-center gap-2 px-3 py-2 rounded-md bg-card/90 backdrop-blur-sm hover:bg-card transition-colors drop-shadow-lg"
               title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {theme === "dark" ? (
@@ -381,7 +381,7 @@ export function DemoCanvas(){
 
        {/* Welcome Screen Overlay */}
        {showWelcome && (
-         <div className="absolute inset-0 z-20 bg-white dark:bg-gray-900">
+         <div className="absolute inset-0 z-20 bg-background">
            {/* Sidebar button - Left side */}
            <div className="absolute top-1 left-2 sm:left-4 z-30 pointer-events-auto">
              <div className="p-2 pt-2">
@@ -393,7 +393,7 @@ export function DemoCanvas(){
            <div className="absolute p-2 pt-2 top-1 right-2 sm:right-4 z-30 pointer-events-auto">
              <button
                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-               className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 transition-colors drop-shadow-lg"
+               className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md bg-card/90 backdrop-blur-sm hover:bg-card transition-colors drop-shadow-lg"
                title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
              >
                {theme === "dark" ? (
@@ -522,10 +522,10 @@ export function DemoCanvas(){
       ></canvas>
 
       {/* Zoom controls - Always visible */}
-      <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-30 flex items-center gap-1 sm:gap-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 drop-shadow-lg">
-        <button className="px-1.5 sm:px-2 py-0.5 sm:py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs sm:text-sm">−</button>
+      <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-30 flex items-center gap-1 sm:gap-2 bg-card/90 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 drop-shadow-lg">
+        <button className="px-1.5 sm:px-2 py-0.5 sm:py-1 hover:bg-muted rounded text-xs sm:text-sm">−</button>
         <span className="text-xs sm:text-sm font-medium px-1 sm:px-2">100%</span>
-        <button className="px-1.5 sm:px-2 py-0.5 sm:py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs sm:text-sm">+</button>
+        <button className="px-1.5 sm:px-2 py-0.5 sm:py-1 hover:bg-muted rounded text-xs sm:text-sm">+</button>
       </div>
 
       {/* Live Collaboration Dialog */}
@@ -545,7 +545,7 @@ export function DemoCanvas(){
                 className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
                   collabMode === "create"
                     ? "bg-primary text-primary-foreground"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    : "bg-muted text-foreground hover:bg-muted/80"
                 }`}
               >
                 Create Room
@@ -555,7 +555,7 @@ export function DemoCanvas(){
                 className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
                   collabMode === "join"
                     ? "bg-primary text-primary-foreground"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    : "bg-muted text-foreground hover:bg-muted/80"
                 }`}
               >
                 Join Room

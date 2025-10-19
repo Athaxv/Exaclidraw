@@ -64,7 +64,7 @@ export function Dockbar({ selectedShape, setSelectedShape }: {
   return (
     <div className="flex flex-col items-center justify-center">
       <TooltipProvider>
-        <Dock direction="middle" className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-xl shadow-xl dark:bg-gray-900/95 dark:border-gray-700/50 dark:shadow-2xl">
+        <Dock direction="middle" className="bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-xl">
           {DATA.navbar.map((item) => (
             <DockIcon key={item.label}>
               <Tooltip>
@@ -75,20 +75,20 @@ export function Dockbar({ selectedShape, setSelectedShape }: {
                     className={cn(
                       buttonVariants({ variant: "ghost", size: "icon" }),
                       "size-12 rounded-full transition-all duration-200",
-                      "hover:bg-gray-100 hover:scale-105 dark:hover:bg-gray-800/60",
-                      "active:scale-95 dark:active:bg-gray-700/60"
+                      "hover:bg-muted hover:scale-105",
+                      "active:scale-95"
                     )}
                   >
-                    <item.icon className="size-4 text-gray-600 dark:text-gray-300" />
+                    <item.icon className="size-4 text-muted-foreground" />
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.label}</p>
+                <TooltipContent side="bottom" className="bg-popover border-border">
+                  <p className="text-sm font-medium text-popover-foreground">{item.label}</p>
                 </TooltipContent>
               </Tooltip>
             </DockIcon>
           ))}
-          <Separator orientation="vertical" className="h-full bg-gray-300 dark:bg-gray-600" />
+          <Separator orientation="vertical" className="h-full bg-border" />
           {DATA.shapes.map((shape) => (
             <DockIcon key={shape.label}>
               <Tooltip>
@@ -99,29 +99,27 @@ export function Dockbar({ selectedShape, setSelectedShape }: {
                     className={cn(
                       buttonVariants({ variant: "ghost", size: "icon" }),
                       "size-12 rounded-full transition-all duration-200 relative",
-                      "hover:bg-gray-100 hover:scale-105 dark:hover:bg-gray-800/60",
-                      "active:scale-95 dark:active:bg-gray-700/60",
+                      "hover:bg-muted hover:scale-105",
+                      "active:scale-95",
                       selectedShape === shape.label && [
-                        "bg-black text-white shadow-lg",
-                        "dark:bg-black dark:text-white",
-                        "dark:shadow-blue-500/25 dark:shadow-lg",
-                        "scale-105 ring-2 ring-purple-500/20 dark:ring-blue-400/30"
+                        "bg-primary text-primary-foreground shadow-lg",
+                        "scale-105 ring-2 ring-primary/20"
                       ]
                     )}
                   >
                     <shape.icon className={cn(
                       "size-4 transition-colors duration-200",
                       selectedShape === shape.label 
-                        ? "text-white dark:text-white" 
-                        : "text-gray-600 dark:text-gray-300"
+                        ? "text-primary-foreground" 
+                        : "text-muted-foreground"
                     )} />
                     {selectedShape === shape.label && (
-                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-black rounded-full dark:bg-white" />
+                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
                     )}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{shape.label}</p>
+                <TooltipContent side="bottom" className="bg-popover border-border">
+                  <p className="text-sm font-medium text-popover-foreground">{shape.label}</p>
                 </TooltipContent>
               </Tooltip>
             </DockIcon>
