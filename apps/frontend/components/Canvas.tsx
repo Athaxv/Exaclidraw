@@ -2,7 +2,7 @@ import { initDraw } from "@/draw";
 import { useEffect, useRef, useState } from "react";
 import { Dockbar } from "./Dockbar";
 
-type Shape = "rect" | "Ellipse" | "diamond" | "circle" | "pencil" | "arrow" | "free" | "text" | "eraser";
+type Shape = "rect" | "diamond" | "circle" | "pencil" | "arrow" | "free" | "text" | "eraser";
 
 export function Canvas({ roomId, socket }: { roomId: string, socket: WebSocket }){
     const canvasRef = useRef<HTMLCanvasElement>(null);

@@ -10,7 +10,7 @@ export type DemoDrawOptions = {
 
 const defaultDemoDrawOptions: Required<DemoDrawOptions> = {
     textFont: "40px Virgil, sans-serif",
-    textColor: "rgba(255, 255, 255, 1)",
+    textColor: "rgba(0, 0, 0, 1)",
     textPlaceholder: "",
     textInputBorder: "rgba(0, 0, 0)"
 };
@@ -51,6 +51,9 @@ type Shape = {
     text: string;
 } | {
     type: "eraser";
+} | {
+    type: "free";
+    points: { x: number; y: number }[];
 }
 
 // Hit detection functions for each shape type
@@ -172,6 +175,11 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     let clicked = false;
     let startX = 0;
     let startY = 0;
+    let freeDrawPoints: { x: number; y: number }[] = [];
+    let isTyping = false;
+    let typingBuffer = "";
+    let typingX = 0;
+    let typingY = 0;
     canvas.addEventListener("mousedown", (e) => {
         //@ts-expect-error - selectedShape is set on window object
         const selectedShape = window.selectedShape;
@@ -197,6 +205,26 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
                 }
             }
             return;
+        }
+        
+        if (selectedShape === "free") {
+            // Start free drawing
+            freeDrawPoints = [{ x: e.clientX, y: e.clientY }];
+            clicked = true;
+            return;
+        }
+        
+        if (selectedShape === "text") {
+            // Enter text-typing mode at the clicked position
+            isTyping = true;
+            typingBuffer = "";
+            typingX = e.clientX;
+            typingY = e.clientY;
+            clearCanvas(canvas, existingShapes, ctx);
+            ctx.fillStyle = "rgba(0, 0, 0, 1)";
+            ctx.font = "40px Virgil, sans-serif";
+            ctx.textBaseline = "top";
+            return; // don't start drag while typing
         }
         
         clicked = true;
@@ -253,6 +281,12 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
                 startY: startY,
                 endX: e.clientX,
                 endY: e.clientY
+            }
+        }
+        else if (selectedShape === "free") {
+            shape = {
+                type: "free",
+                points: freeDrawPoints
             }
         }
 
@@ -346,6 +380,68 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
                 ctx.lineTo(arrowX2, arrowY2);
                 ctx.stroke();
             }
+            else if (selectedShape === "free") {
+                // Add point to free drawing path
+                freeDrawPoints.push({ x: e.clientX, y: e.clientY });
+                
+                // Draw the current free drawing path
+                if (freeDrawPoints.length > 1) {
+                    ctx.strokeStyle = "rgba(0, 0, 0, 1)";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(freeDrawPoints[0].x, freeDrawPoints[0].y);
+                    for (let i = 1; i < freeDrawPoints.length; i++) {
+                        ctx.lineTo(freeDrawPoints[i].x, freeDrawPoints[i].y);
+                    }
+                    ctx.stroke();
+                }
+            }
+        }
+    })
+
+    // Keyboard-driven text entry when in typing mode
+    window.addEventListener("keydown", (ke) => {
+        if (!isTyping) return;
+        if (ke.key === "Enter") {
+            ke.preventDefault();
+            const val = typingBuffer.trim();
+            if (val.length > 0) {
+                const textShape: Shape = { type: "text", x: typingX, y: typingY, text: val };
+                existingShapes.push(textShape);
+                socket.send(JSON.stringify({
+                    type: "chat",
+                    message: JSON.stringify({ shape: textShape }),
+                    roomId
+                }));
+                clearCanvas(canvas, existingShapes, ctx);
+            }
+            typingBuffer = "";
+            isTyping = false;
+            return;
+        }
+        if (ke.key === "Escape") {
+            ke.preventDefault();
+            typingBuffer = "";
+            isTyping = false;
+            clearCanvas(canvas, existingShapes, ctx);
+            return;
+        }
+        if (ke.key === "Backspace") {
+            ke.preventDefault();
+            typingBuffer = typingBuffer.slice(0, -1);
+        } else if (ke.key.length === 1) {
+            // Append printable character
+            typingBuffer += ke.key;
+        } else {
+            return;
+        }
+        // Preview current typing without committing
+        clearCanvas(canvas, existingShapes, ctx);
+        ctx.fillStyle = "rgba(0, 0, 0, 1)";
+        ctx.font = "40px Virgil, sans-serif";
+        ctx.textBaseline = "top";
+        if (typingBuffer.length > 0) {
+            ctx.fillText(typingBuffer, typingX, typingY);
         }
     })
 }
@@ -367,6 +463,7 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
     let typingBuffer = "";
     let typingX = 0;
     let typingY = 0;
+    let freeDrawPoints: { x: number; y: number }[] = [];
     canvas.addEventListener("mousedown", (e) => {
         //@ts-expect-error - selectedShape is set on window object
         const selectedShape = window.selectedShape;
@@ -396,6 +493,27 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
             ctx.textBaseline = "top";
             return; // don't start drag while typing
         }
+        
+        if (selectedShape === "free") {
+            // Start free drawing
+            freeDrawPoints = [{ x: e.clientX, y: e.clientY }];
+            clicked = true;
+            return;
+        }
+        
+        if (selectedShape === "text") {
+            // Enter text-typing mode at the clicked position
+            isTyping = true;
+            typingBuffer = "";
+            typingX = e.clientX;
+            typingY = e.clientY;
+            DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts);
+            ctx.fillStyle = "rgba(0, 0, 0, 1)";
+            ctx.font = "40px Virgil, sans-serif";
+            ctx.textBaseline = "top";
+            return; // don't start drag while typing
+        }
+        
         clicked = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -450,6 +568,12 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
                 startY: startY,
                 endX: e.clientX,
                 endY: e.clientY
+            }
+        }
+        else if (selectedShape === "free") {
+            shape = {
+                type: "free",
+                points: freeDrawPoints
             }
         }
 
@@ -537,6 +661,22 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
                 ctx.moveTo(e.clientX, e.clientY);
                 ctx.lineTo(arrowX2, arrowY2);
                 ctx.stroke();
+            }
+            else if (selectedShape === "free") {
+                // Add point to free drawing path
+                freeDrawPoints.push({ x: e.clientX, y: e.clientY });
+                
+                // Draw the current free drawing path
+                if (freeDrawPoints.length > 1) {
+                    ctx.strokeStyle = "rgba(0, 0, 0, 1)";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(freeDrawPoints[0].x, freeDrawPoints[0].y);
+                    for (let i = 1; i < freeDrawPoints.length; i++) {
+                        ctx.lineTo(freeDrawPoints[i].x, freeDrawPoints[i].y);
+                    }
+                    ctx.stroke();
+                }
             }
         }
     })
@@ -667,6 +807,18 @@ function DemoClearCanvas(
             ctx.textBaseline = "top";
             ctx.fillText(shape.text, shape.x, shape.y);
         }
+        else if (shape.type === "free") {
+            if (shape.points.length > 1) {
+                ctx.strokeStyle = "rgba(0, 0, 0)";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(shape.points[0].x, shape.points[0].y);
+                for (let i = 1; i < shape.points.length; i++) {
+                    ctx.lineTo(shape.points[i].x, shape.points[i].y);
+                }
+                ctx.stroke();
+            }
+        }
     })
 }
 
@@ -744,6 +896,18 @@ function clearCanvas(canvas: HTMLCanvasElement, existingShapes: Shape[], ctx: Ca
             ctx.moveTo(shape.endX, shape.endY);
             ctx.lineTo(arrowX2, arrowY2);
             ctx.stroke();
+        }
+        else if (shape.type === "free") {
+            if (shape.points.length > 1) {
+                ctx.strokeStyle = "rgba(0, 0, 0)";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(shape.points[0].x, shape.points[0].y);
+                for (let i = 1; i < shape.points.length; i++) {
+                    ctx.lineTo(shape.points[i].x, shape.points[i].y);
+                }
+                ctx.stroke();
+            }
         }
     })
 }
