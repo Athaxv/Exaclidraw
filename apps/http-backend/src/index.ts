@@ -33,7 +33,7 @@ app.post('/auth/v1/signin', async function (req, res) {
                 message: 'No user exists with this email'
             })
         }
-        const token = jwt.sign({ userId: checkuser?.id, email: checkuser?.email }, JWT_SECRET);
+        const token = jwt.sign({ userId: checkuser?.id, email: checkuser?.email }, JWT_SECRET, { expiresIn: '7d'});
         console.log("Token", token)
         console.log(checkuser)
         // check the user
@@ -67,6 +67,18 @@ app.post('/auth/v1/signup', async function (req, res) {
     return res.json({
         message: 'User signed successfully'
     })
+})
+
+app.get('/me',  middleware ,async function (req, res) {
+    const userId = req.userId;
+
+    if (!userId) {
+        return res.status(401).json({
+            message: "Not Authenticated"
+        })
+    }
+
+    res.status(200).json({ userId: userId});
 })
 
 app.post('/room', middleware, async (req, res) => {
