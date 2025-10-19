@@ -732,7 +732,7 @@ function DemoClearCanvas(
     ctx.fillStyle = "rgba(255, 255, 255)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    DemoexistingShapes.map((shape) => {
+    DemoexistingShapes.filter(shape => shape && shape.type).map((shape) => {
         if (shape.type === "rect") {
             ctx.strokeStyle = "rgba(0, 0, 0)";
             ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
@@ -827,7 +827,7 @@ function clearCanvas(canvas: HTMLCanvasElement, existingShapes: Shape[], ctx: Ca
     ctx.fillStyle = "rgba(255, 255, 255)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    existingShapes.map((shape) => {
+    existingShapes.filter(shape => shape && shape.type).map((shape) => {
         if (shape.type === "rect") {
             ctx.strokeStyle = "rgba(0, 0, 0)";
             ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
@@ -919,7 +919,9 @@ async function getExistingShapes(roomId: string) {
     const shapes = messages.map((x: { message: string }) => {
         const msgData = JSON.parse(x.message)
         return msgData.shape;
-    })
+    }).filter((shape: unknown): shape is Shape => {
+        return shape !== null && typeof shape === 'object' && 'type' in shape;
+    }); // Filter out undefined shapes
 
     return shapes;
 }
