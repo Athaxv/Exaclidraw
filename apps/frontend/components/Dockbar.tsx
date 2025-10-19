@@ -1,9 +1,9 @@
 "use client";
 
-import { CalendarIcon, HomeIcon, MailIcon, PencilIcon } from "lucide-react";
+import { HomeIcon, MailIcon, PencilIcon } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-import { SquareIcon, CircleIcon, DiamondIcon, ArrowRightIcon, LineChartIcon, MousePointerIcon } from "lucide-react";
+import { SquareIcon, CircleIcon, DiamondIcon, ArrowRightIcon, LineChartIcon, MousePointerIcon, EraserIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -30,6 +30,8 @@ const Icons = {
   arrow: (props: IconProps) => <ArrowRightIcon {...props} />,
   line: (props: IconProps) => <LineChartIcon {...props} />,
   free: (props: IconProps) => <MousePointerIcon {...props} />,
+  text: (props: IconProps) => <MailIcon {...props} />,
+  eraser: (props: IconProps) => <EraserIcon {...props} />,
   // ...existing code...
 };
 
@@ -46,37 +48,15 @@ const DATA = {
     { icon: Icons.line, label: "pencil" as Shape },
     { icon: Icons.arrow, label: "arrow" as Shape },
     { icon: Icons.free, label: "free" as Shape },
+    { icon: Icons.text, label: "text" as Shape },
+    { icon: Icons.eraser, label: "eraser" as Shape },
   ]
-//   contact: {
-//     social: {
-//       GitHub: {
-//         name: "GitHub",
-//         url: "#",
-//         icon: Icons.github,
-//       },
-//       LinkedIn: {
-//         name: "LinkedIn",
-//         url: "#",
-//         icon: Icons.linkedin,
-//       },
-//       X: {
-//         name: "X",
-//         url: "#",
-//         icon: Icons.x,
-//       },
-//       email: {
-//         name: "Send Email",
-//         url: "#",
-//         icon: Icons.email,
-//       },
-//     },
-//   },
 };
 
 
 
 // Define the Shape type based on your shape labels
-type Shape = "rect" | "Ellipse" | "diamond" | "circle" | "pencil" | "arrow" | "free";
+type Shape = "rect" | "Ellipse" | "diamond" | "circle" | "pencil" | "arrow" | "free" | "text" | "eraser";
 
 export function Dockbar({ selectedShape, setSelectedShape }: {
     selectedShape: Shape,
@@ -85,7 +65,7 @@ export function Dockbar({ selectedShape, setSelectedShape }: {
   return (
     <div className="flex flex-col items-center justify-center">
       <TooltipProvider>
-        <Dock direction="middle">
+        <Dock direction="middle" className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-xl shadow-xl dark:bg-gray-900/95 dark:border-gray-700/50 dark:shadow-2xl">
           {DATA.navbar.map((item) => (
             <DockIcon key={item.label}>
               <Tooltip>
@@ -95,19 +75,21 @@ export function Dockbar({ selectedShape, setSelectedShape }: {
                     aria-label={item.label}
                     className={cn(
                       buttonVariants({ variant: "ghost", size: "icon" }),
-                      "size-12 rounded-full",
+                      "size-12 rounded-full transition-all duration-200",
+                      "hover:bg-gray-100 hover:scale-105 dark:hover:bg-gray-800/60",
+                      "active:scale-95 dark:active:bg-gray-700/60"
                     )}
                   >
-                    <item.icon className="size-4" />
+                    <item.icon className="size-4 text-gray-600 dark:text-gray-300" />
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>{item.label}</p>
+                <TooltipContent side="bottom" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.label}</p>
                 </TooltipContent>
               </Tooltip>
             </DockIcon>
           ))}
-          <Separator orientation="vertical" className="h-full" />
+          <Separator orientation="vertical" className="h-full bg-gray-300 dark:bg-gray-600" />
           {DATA.shapes.map((shape) => (
             <DockIcon key={shape.label}>
               <Tooltip>
@@ -117,15 +99,30 @@ export function Dockbar({ selectedShape, setSelectedShape }: {
                     aria-label={shape.label}
                     className={cn(
                       buttonVariants({ variant: "ghost", size: "icon" }),
-                      "size-12 rounded-full",
-                      selectedShape === shape.label && 'bg-neutral-800'
+                      "size-12 rounded-full transition-all duration-200 relative",
+                      "hover:bg-gray-100 hover:scale-105 dark:hover:bg-gray-800/60",
+                      "active:scale-95 dark:active:bg-gray-700/60",
+                      selectedShape === shape.label && [
+                        "bg-black text-white shadow-lg",
+                        "dark:bg-black dark:text-white",
+                        "dark:shadow-blue-500/25 dark:shadow-lg",
+                        "scale-105 ring-2 ring-purple-500/20 dark:ring-blue-400/30"
+                      ]
                     )}
                   >
-                    <shape.icon className="size-4" />
+                    <shape.icon className={cn(
+                      "size-4 transition-colors duration-200",
+                      selectedShape === shape.label 
+                        ? "text-white dark:text-white" 
+                        : "text-gray-600 dark:text-gray-300"
+                    )} />
+                    {selectedShape === shape.label && (
+                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-black rounded-full dark:bg-white" />
+                    )}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>{shape.label}</p>
+                <TooltipContent side="bottom" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{shape.label}</p>
                 </TooltipContent>
               </Tooltip>
             </DockIcon>
