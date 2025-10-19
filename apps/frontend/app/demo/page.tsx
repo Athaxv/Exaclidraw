@@ -17,13 +17,25 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { HomeIcon, SettingsIcon, PaletteIcon, DownloadIcon, ShareIcon, SunIcon, MoonIcon, Pencil, Moon, Sun } from "lucide-react";
+import { HomeIcon, SettingsIcon, PaletteIcon, ShareIcon, SunIcon, MoonIcon, Pencil, Moon, Sun, FolderIcon, UserIcon, LogInIcon, LogOutIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 type Shape = "rect" | "diamond" | "circle" | "pencil" | "arrow" | "free" | "text" | "eraser";
+
+interface Room {
+    id: number;
+    slug: string;
+    adminId: string;
+    createdAt?: Date;
+}
+
+interface UserData {
+    userId: string;
+}
 
 export function DemoCanvas(){
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -31,6 +43,12 @@ export function DemoCanvas(){
     const [ showWelcome, setShowWelcome ] = useState(true);
     const { theme, setTheme } = useTheme();
     const router = useRouter();
+    
+    // Authentication and rooms state
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [userData, setUserData] = useState<UserData | null>(null);
+    const [userRooms, setUserRooms] = useState<Room[]>([]);
+    const [loadingRooms, setLoadingRooms] = useState(false);
 
     // Collaboration dialog state
     const [showCollabDialog, setShowCollabDialog] = useState(false);
@@ -43,12 +61,38 @@ export function DemoCanvas(){
     const checkAuth = async (): Promise<boolean> => {
         try {
             const token = localStorage.getItem('auth_token') || '';
+            if (!token) return false;
             const res = await fetch('http://localhost:5000/me', { 
                 headers: { Authorization: token }
             });
-            return res.ok;
-        } catch (_) {
+            if (res.ok) {
+                const data = await res.json();
+                setUserData(data);
+                setIsAuthenticated(true);
+                return true;
+            }
             return false;
+        } catch {
+            return false;
+        }
+    };
+
+    // Fetch user rooms function
+    const fetchUserRooms = async () => {
+        try {
+            setLoadingRooms(true);
+            const token = localStorage.getItem('auth_token') || '';
+            const res = await fetch('http://localhost:5000/rooms', {
+                headers: { Authorization: token }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setUserRooms(data.message || []); // Backend returns { message: rooms }
+            }
+        } catch (error) {
+            console.error('Failed to fetch rooms:', error);
+        } finally {
+            setLoadingRooms(false);
         }
     };
 
@@ -56,6 +100,24 @@ export function DemoCanvas(){
         //@ts-expect-error - selectedShape is set on window object
         window.selectedShape = selectedShape
     }, [selectedShape])
+
+    // Initial auth check and room fetch
+    useEffect(() => {
+        checkAuth().then(authed => {
+            if (authed) {
+                fetchUserRooms();
+            }
+        });
+    }, []);
+
+    const handleLogout = () => {
+        localStorage.removeItem('auth_token');
+        setIsAuthenticated(false);
+        setUserData(null);
+        setUserRooms([]);
+        toast.success("Logged out successfully!");
+        router.push('/signin');
+    };
 
     useEffect(() => {
         if (canvasRef.current){
@@ -93,88 +155,195 @@ export function DemoCanvas(){
         <SidebarProvider defaultOpen={false}>
             <div className="flex w-full h-screen bg-white dark:bg-gray-900">
                 <Sidebar>
-                    <SidebarHeader>
-                        <div className="flex items-center gap-2 px-2 py-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                                <PaletteIcon className="h-4 w-4" />
-                            </div>
-                            <div className="grid flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-semibold">Canvas Tools</span>
-                                <span className="truncate text-xs text-muted-foreground">Drawing utilities</span>
-                            </div>
-                        </div>
-                    </SidebarHeader>
-                    <SidebarContent>
-                        <SidebarGroup>
-                            <SidebarGroupLabel>Tools</SidebarGroupLabel>
-                            <SidebarGroupContent>
+                    {isAuthenticated ? (
+                        // Authenticated sidebar content
+                        <>
+                            <SidebarHeader>
+                                <div className="flex items-center gap-2 px-2 py-2">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                                        <UserIcon className="h-4 w-4" />
+                                    </div>
+                                    <div className="grid flex-1 text-left text-sm leading-tight">
+                                        <span className="truncate font-semibold">Welcome back!</span>
+                                        <span className="truncate text-xs text-muted-foreground">User ID: {userData?.userId?.slice(0, 8)}...</span>
+                                    </div>
+                                </div>
+                            </SidebarHeader>
+                            <SidebarContent>
+                                <SidebarGroup>
+                                    <SidebarGroupLabel>Tools</SidebarGroupLabel>
+                                    <SidebarGroupContent>
+                                        <SidebarMenu>
+                                            <SidebarMenuItem>
+                                                <SidebarMenuButton>
+                                                    <HomeIcon className="h-4 w-4" />
+                                                    <span>Home</span>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                            <SidebarMenuItem>
+                                                <SidebarMenuButton>
+                                                    <PaletteIcon className="h-4 w-4" />
+                                                    <span>Colors</span>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                            <SidebarMenuItem>
+                                                <SidebarMenuButton>
+                                                    <SettingsIcon className="h-4 w-4" />
+                                                    <span>Settings</span>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                        </SidebarMenu>
+                                    </SidebarGroupContent>
+                                </SidebarGroup>
+                                
+                                <SidebarGroup>
+                                    <SidebarGroupLabel>Your Rooms</SidebarGroupLabel>
+                                    <SidebarGroupContent>
+                                        <SidebarMenu>
+                                            {loadingRooms ? (
+                                                <SidebarMenuItem>
+                                                    <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
+                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                                                        Loading rooms...
+                                                    </div>
+                                                </SidebarMenuItem>
+                                            ) : userRooms.length === 0 ? (
+                                                <SidebarMenuItem>
+                                                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                                                        No rooms yet
+                                                    </div>
+                                                </SidebarMenuItem>
+                                            ) : (
+                                                userRooms.map((room) => (
+                                                    <SidebarMenuItem key={room.id}>
+                                                        <SidebarMenuButton 
+                                                            onClick={() => router.push(`/canvas/${room.id}`)}
+                                                            className="w-full justify-start"
+                                                        >
+                                                            <FolderIcon className="h-4 w-4" />
+                                                            <div className="flex flex-col items-start">
+                                                                <span className="text-sm font-medium">{room.slug}</span>
+                                                                <span className="text-xs text-muted-foreground">ID: {room.id}</span>
+                                                            </div>
+                                                        </SidebarMenuButton>
+                                                    </SidebarMenuItem>
+                                                ))
+                                            )}
+                                        </SidebarMenu>
+                                    </SidebarGroupContent>
+                                </SidebarGroup>
+
+                                <SidebarGroup>
+                                    <SidebarGroupLabel>Actions</SidebarGroupLabel>
+                                    <SidebarGroupContent>
+                                        <SidebarMenu>
+                                            <SidebarMenuItem>
+                                                <SidebarMenuButton onClick={() => {
+                                                    navigator.clipboard.writeText(window.location.href);
+                                                    toast.success("Demo URL copied to clipboard!");
+                                                }}>
+                                                    <ShareIcon className="h-4 w-4" />
+                                                    <span>Share</span>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                        </SidebarMenu>
+                                    </SidebarGroupContent>
+                                </SidebarGroup>
+                            </SidebarContent>
+                            <SidebarFooter>
                                 <SidebarMenu>
                                     <SidebarMenuItem>
-                                        <SidebarMenuButton>
-                                            <HomeIcon className="h-4 w-4" />
-                                            <span>Home</span>
+                                        <SidebarMenuButton onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                                            {theme === "dark" ? (
+                                                <SunIcon className="h-4 w-4" />
+                                            ) : (
+                                                <MoonIcon className="h-4 w-4" />
+                                            )}
+                                            <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                     <SidebarMenuItem>
-                                        <SidebarMenuButton>
-                                            <PaletteIcon className="h-4 w-4" />
-                                            <span>Colors</span>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton>
-                                            <SettingsIcon className="h-4 w-4" />
-                                            <span>Settings</span>
+                                        <SidebarMenuButton onClick={handleLogout}>
+                                            <LogOutIcon className="h-4 w-4" />
+                                            <span>Logout</span>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 </SidebarMenu>
-                            </SidebarGroupContent>
-                        </SidebarGroup>
-                        <SidebarGroup>
-                            <SidebarGroupLabel>Actions</SidebarGroupLabel>
-                            <SidebarGroupContent>
+                            </SidebarFooter>
+                        </>
+                    ) : (
+                        // Unauthenticated sidebar content
+                        <>
+                            <SidebarHeader>
+                                <div className="flex items-center gap-2 px-2 py-2">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                                        <PaletteIcon className="h-4 w-4" />
+                                    </div>
+                                    <div className="grid flex-1 text-left text-sm leading-tight">
+                                        <span className="truncate font-semibold">Welcome!</span>
+                                        <span className="truncate text-xs text-muted-foreground">Sign in to access your rooms</span>
+                                    </div>
+                                </div>
+                            </SidebarHeader>
+                            <SidebarContent>
+                                <SidebarGroup>
+                                    <SidebarGroupLabel>Get Started</SidebarGroupLabel>
+                                    <SidebarGroupContent>
+                                        <SidebarMenu>
+                                            <SidebarMenuItem>
+                                                <SidebarMenuButton onClick={() => router.push('/signin')}>
+                                                    <LogInIcon className="h-4 w-4" />
+                                                    <span>Sign In</span>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                            <SidebarMenuItem>
+                                                <SidebarMenuButton onClick={() => router.push('/signup')}>
+                                                    <UserIcon className="h-4 w-4" />
+                                                    <span>Sign Up</span>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                        </SidebarMenu>
+                                    </SidebarGroupContent>
+                                </SidebarGroup>
+                                
+                                <SidebarGroup>
+                                    <SidebarGroupLabel>Actions</SidebarGroupLabel>
+                                    <SidebarGroupContent>
+                                        <SidebarMenu>
+                                            <SidebarMenuItem>
+                                                <SidebarMenuButton onClick={() => {
+                                                    navigator.clipboard.writeText(window.location.href);
+                                                    toast.success("Demo URL copied to clipboard!");
+                                                }}>
+                                                    <ShareIcon className="h-4 w-4" />
+                                                    <span>Share</span>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                        </SidebarMenu>
+                                    </SidebarGroupContent>
+                                </SidebarGroup>
+                            </SidebarContent>
+                            <SidebarFooter>
                                 <SidebarMenu>
                                     <SidebarMenuItem>
-                                        <SidebarMenuButton>
-                                            <DownloadIcon className="h-4 w-4" />
-                                            <span>Export</span>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton>
-                                            <ShareIcon className="h-4 w-4" />
-                                            <span>Share</span>
+                                        <SidebarMenuButton onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                                            {theme === "dark" ? (
+                                                <SunIcon className="h-4 w-4" />
+                                            ) : (
+                                                <MoonIcon className="h-4 w-4" />
+                                            )}
+                                            <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 </SidebarMenu>
-                            </SidebarGroupContent>
-                        </SidebarGroup>
-                    </SidebarContent>
-                    <SidebarFooter>
-                        <SidebarMenu>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-                                    {theme === "dark" ? (
-                                        <SunIcon className="h-4 w-4" />
-                                    ) : (
-                                        <MoonIcon className="h-4 w-4" />
-                                    )}
-                                    <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton>
-                                    <SettingsIcon className="h-4 w-4" />
-                                    <span>Preferences</span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </SidebarMenu>
-                    </SidebarFooter>
+                            </SidebarFooter>
+                        </>
+                    )}
                 </Sidebar>
                 <SidebarInset>
                 <div className={`relative h-screen w-full ${theme === 'dark' ? 'dark' : ''}`}>
       {/* Floating controls overlay */}
-      <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+      <div className="absolute top-0 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
           <div className="p-2 pt-2">
             <SidebarTrigger />

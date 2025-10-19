@@ -4,6 +4,7 @@ import "./globals.css";
 import { Caveat } from "next/font/google";
 import localFont from "next/font/local";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 export const excalifont = localFont({
   src: "./fonts/excalifont-Regular.woff2",
@@ -55,6 +56,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
         {children}
+        <Toaster />
         </ThemeProvider>
       </body>
     </html>

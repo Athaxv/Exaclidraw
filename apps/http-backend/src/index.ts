@@ -145,4 +145,18 @@ app.get('/room/:slug', async function (req, res) {
     })
 })
 
+app.get('/rooms', middleware, async function (req, res) {
+    const userId = req.userId;
+
+    const rooms = await prismaClient.room.findMany({
+        where: {
+            adminId: userId
+        }
+    })
+
+    res.json({
+        message: rooms
+    })
+})
+
 app.listen(5000)
