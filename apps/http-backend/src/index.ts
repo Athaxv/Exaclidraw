@@ -29,7 +29,7 @@ app.post('/auth/v1/signin', async function (req, res) {
             }
         })
         if (!checkuser) {
-            res.status(401).json({
+            return res.status(401).json({
                 message: 'No user exists with this email'
             })
         }
@@ -42,31 +42,52 @@ app.post('/auth/v1/signin', async function (req, res) {
             userId: token,
         })
     } catch (error) {
-        res.json({
-            message: error
+        console.error('Signin error:', error);
+        res.status(500).json({
+            message: 'Internal server error'
         })
     }
 })
 
 app.post('/auth/v1/signup', async function (req, res) {
-    const parseddata = createUserSchema.safeParse(req.body)
-    if (!parseddata.success) {
-        return res.json({
-            message: "Incorrect input given"
+    try {
+        const parseddata = createUserSchema.safeParse(req.body)
+        if (!parseddata.success) {
+            return res.status(400).json({
+                message: "Incorrect input given"
+            })
+        }
+        
+        // Check if user already exists
+        const checkUser = await prismaClient.user.findFirst({
+            where: {
+                email: parseddata.data.email
+            }
+        })
+        if (checkUser) {
+            return res.status(409).json({ 
+                message: "User already exists with this email" 
+            })
+        }
+
+        const new_user = await prismaClient.user.create({
+            data: {
+                email: parseddata.data.email,
+                password: parseddata.data.password,
+                username: parseddata.data.name
+            }
+        })
+        console.log(new_user);
+
+        return res.status(201).json({
+            message: 'User signed successfully'
+        })
+    } catch (error) {
+        console.error('Signup error:', error);
+        return res.status(500).json({
+            message: 'Internal server error'
         })
     }
-    const new_user = await prismaClient.user.create({
-        data: {
-            email: parseddata.data.email,
-            password: parseddata.data.password,
-            username: parseddata.data.name
-        }
-    })
-    console.log(new_user);
-
-    return res.json({
-        message: 'User signed successfully'
-    })
 })
 
 app.get('/me',  middleware ,async function (req, res) {
