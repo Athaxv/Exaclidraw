@@ -140,7 +140,7 @@ function findShapeAtPoint(x: number, y: number, shapes: Shape[], ctx: CanvasRend
     return null;
 }
 
-export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket) {
+export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket, theme: string = 'light') {
     const ctx = canvas.getContext("2d");
     const existingShapes: Shape[] = await getExistingShapes(roomId);
 
@@ -149,6 +149,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     if (!ctx) {
         throw new Error("Failed to get 2D context from canvas.");
     }
+    const renderCtx = ctx as CanvasRenderingContext2D;
 
     socket.onmessage = (event) => {
         const message = JSON.parse(event.data);
@@ -160,17 +161,17 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
                 // Handle eraser action from other clients
                 if (parsedChat.shapeIndex >= 0 && parsedChat.shapeIndex < existingShapes.length) {
                     existingShapes.splice(parsedChat.shapeIndex, 1);
-                    clearCanvas(canvas, existingShapes, ctx);
+                    clearCanvas(canvas, existingShapes, ctx, theme);
                 }
             } else if (parsedChat.shape) {
                 // Handle new shape creation
                 existingShapes.push(parsedChat.shape);
-                clearCanvas(canvas, existingShapes, ctx);
+                clearCanvas(canvas, existingShapes, ctx, theme);
             }
         }
     }
 
-    clearCanvas(canvas, existingShapes, ctx);
+    clearCanvas(canvas, existingShapes, ctx, theme);
 
     let clicked = false;
     let startX = 0;
@@ -180,9 +181,66 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     let typingBuffer = "";
     let typingX = 0;
     let typingY = 0;
+    let caretVisible = true;
+    let caretTimer: number | null = null;
+
+    function drawCaret(ctx: CanvasRenderingContext2D, x: number, y: number) {
+        const fontPx = parseInt(ctx.font) || 16;
+        ctx.save();
+        ctx.strokeStyle = "rgb(147, 51, 234)";
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y + fontPx);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function renderAll() {
+        clearCanvas(canvas, existingShapes, renderCtx, theme);
+        // Draw current typing preview and caret if applicable
+        if (isTyping) {
+            const textColor = theme === 'dark' ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 1)";
+            renderCtx.fillStyle = textColor;
+            renderCtx.font = "40px Virgil, sans-serif";
+            renderCtx.textBaseline = "top";
+            let caretX = typingX;
+            if (typingBuffer.length > 0) {
+                renderCtx.fillText(typingBuffer, typingX, typingY);
+                const w = renderCtx.measureText(typingBuffer).width;
+                caretX = typingX + w;
+            }
+            if (caretVisible) {
+                drawCaret(renderCtx, caretX, typingY);
+            }
+        }
+    }
+
+    function startCaretBlink() {
+        if (caretTimer) window.clearInterval(caretTimer);
+        caretVisible = true;
+        caretTimer = window.setInterval(() => {
+            caretVisible = !caretVisible;
+            renderAll();
+        }, 500);
+    }
+
+    function stopCaretBlink() {
+        if (caretTimer) {
+            window.clearInterval(caretTimer);
+            caretTimer = null;
+        }
+        caretVisible = false;
+    }
     canvas.addEventListener("mousedown", (e) => {
         //@ts-expect-error - selectedShape is set on window object
         const selectedShape = window.selectedShape;
+        if (selectedShape !== "text" && isTyping) {
+            // If switching tools while typing, cancel caret
+            isTyping = false;
+            typingBuffer = "";
+            stopCaretBlink();
+            renderAll();
+        }
         
         if (selectedShape === "eraser") {
             // Handle eraser tool - find and remove shape at click point
@@ -191,7 +249,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
                 const shapeIndex = existingShapes.indexOf(clickedShape);
                 if (shapeIndex > -1) {
                     existingShapes.splice(shapeIndex, 1);
-                    clearCanvas(canvas, existingShapes, ctx);
+                    clearCanvas(canvas, existingShapes, ctx, theme);
                     
                     // Send eraser action to other clients
                     socket.send(JSON.stringify({
@@ -218,12 +276,12 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
             // Enter text-typing mode at the clicked position
             isTyping = true;
             typingBuffer = "";
-            typingX = e.clientX;
-            typingY = e.clientY;
-            clearCanvas(canvas, existingShapes, ctx);
-            ctx.fillStyle = "rgba(0, 0, 0, 1)";
-            ctx.font = "40px Virgil, sans-serif";
-            ctx.textBaseline = "top";
+            const rect = canvas.getBoundingClientRect();
+            typingX = e.clientX - rect.left;
+            typingY = e.clientY - rect.top;
+            renderAll();
+            // Start blinking after initial render
+            startCaretBlink();
             return; // don't start drag while typing
         }
         
@@ -306,11 +364,12 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         }))
     })
     canvas.addEventListener("mousemove", (e) => {
-        if (clicked) {
+        if (clicked && !isTyping) {
             const width = e.clientX - startX;
             const height = e.clientY - startY;
-            clearCanvas(canvas, existingShapes, ctx);
-            ctx.strokeStyle = "rgba(0, 0, 0, 1)";
+            clearCanvas(canvas, existingShapes, ctx, theme);
+            const strokeColor = theme === 'dark' ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 1)";
+            ctx.strokeStyle = strokeColor;
             //@ts-expect-error - selectedShape is set on window object
             const selectedShape = window.selectedShape;
             if (selectedShape === "rect") {
@@ -413,17 +472,20 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
                     message: JSON.stringify({ shape: textShape }),
                     roomId
                 }));
-                clearCanvas(canvas, existingShapes, ctx);
+                clearCanvas(canvas, existingShapes, ctx, theme);
             }
             typingBuffer = "";
             isTyping = false;
+            stopCaretBlink();
+            renderAll();
             return;
         }
         if (ke.key === "Escape") {
             ke.preventDefault();
             typingBuffer = "";
             isTyping = false;
-            clearCanvas(canvas, existingShapes, ctx);
+            stopCaretBlink();
+            renderAll();
             return;
         }
         if (ke.key === "Backspace") {
@@ -436,17 +498,11 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
             return;
         }
         // Preview current typing without committing
-        clearCanvas(canvas, existingShapes, ctx);
-        ctx.fillStyle = "rgba(0, 0, 0, 1)";
-        ctx.font = "40px Virgil, sans-serif";
-        ctx.textBaseline = "top";
-        if (typingBuffer.length > 0) {
-            ctx.fillText(typingBuffer, typingX, typingY);
-        }
+        renderAll();
     })
 }
 
-export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDrawOptions) {
+export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDrawOptions, theme: string = 'light') {
     const ctx = canvas.getContext("2d");
     const DemoexistingShapes: Shape[] = [];
     const opts = { ...defaultDemoDrawOptions, ...(options || {}) };
@@ -454,7 +510,8 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
     if (!ctx) {
         throw new Error("Failed to get 2D context from canvas.");
     }
-    DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts);
+    const demoCtx = ctx as CanvasRenderingContext2D;
+    DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts, theme);
 
     let clicked = false;
     let startX = 0;
@@ -463,10 +520,65 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
     let typingBuffer = "";
     let typingX = 0;
     let typingY = 0;
+    let caretVisible = true;
+    let caretTimer: number | null = null;
+
+    function drawCaret(ctx: CanvasRenderingContext2D, x: number, y: number) {
+        const fontPx = parseInt(ctx.font) || 16;
+        ctx.save();
+        ctx.strokeStyle = "rgb(147, 51, 234)";
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y + fontPx);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function renderAll() {
+        DemoClearCanvas(canvas, DemoexistingShapes, demoCtx, opts, theme);
+        if (isTyping) {
+            const textColor = theme === 'dark' ? "rgba(255, 255, 255, 0.9)" : (opts.textColor || "rgba(0, 0, 0, 1)");
+            demoCtx.fillStyle = textColor;
+            demoCtx.font = opts.textFont;
+            demoCtx.textBaseline = "top";
+            let caretX = typingX;
+            if (typingBuffer.length > 0) {
+                demoCtx.fillText(typingBuffer, typingX, typingY);
+                const w = demoCtx.measureText(typingBuffer).width;
+                caretX = typingX + w;
+            }
+            if (caretVisible) {
+                drawCaret(demoCtx, caretX, typingY);
+            }
+        }
+    }
+
+    function startCaretBlink() {
+        if (caretTimer) window.clearInterval(caretTimer);
+        caretVisible = true;
+        caretTimer = window.setInterval(() => {
+            caretVisible = !caretVisible;
+            renderAll();
+        }, 500);
+    }
+
+    function stopCaretBlink() {
+        if (caretTimer) {
+            window.clearInterval(caretTimer);
+            caretTimer = null;
+        }
+        caretVisible = false;
+    }
     let freeDrawPoints: { x: number; y: number }[] = [];
     canvas.addEventListener("mousedown", (e) => {
         //@ts-expect-error - selectedShape is set on window object
         const selectedShape = window.selectedShape;
+        if (selectedShape !== "text" && isTyping) {
+            isTyping = false;
+            typingBuffer = "";
+            stopCaretBlink();
+            renderAll();
+        }
         
         if (selectedShape === "eraser") {
             // Handle eraser tool - find and remove shape at click point
@@ -475,7 +587,7 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
                 const shapeIndex = DemoexistingShapes.indexOf(clickedShape);
                 if (shapeIndex > -1) {
                     DemoexistingShapes.splice(shapeIndex, 1);
-                    DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts);
+                    DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts, theme);
                 }
             }
             return;
@@ -485,12 +597,11 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
             // Enter text-typing mode at the clicked position
             isTyping = true;
             typingBuffer = "";
-            typingX = e.clientX;
-            typingY = e.clientY;
-            DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts);
-            ctx.fillStyle = opts.textColor;
-            ctx.font = opts.textFont;
-            ctx.textBaseline = "top";
+            const rect = canvas.getBoundingClientRect();
+            typingX = e.clientX - rect.left;
+            typingY = e.clientY - rect.top;
+            renderAll();
+            startCaretBlink();
             return; // don't start drag while typing
         }
         
@@ -507,8 +618,9 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
             typingBuffer = "";
             typingX = e.clientX;
             typingY = e.clientY;
-            DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts);
-            ctx.fillStyle = "rgba(0, 0, 0, 1)";
+            DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts, theme);
+            const textColor = theme === 'dark' ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 1)";
+            ctx.fillStyle = textColor;
             ctx.font = "40px Virgil, sans-serif";
             ctx.textBaseline = "top";
             return; // don't start drag while typing
@@ -584,16 +696,17 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
 
         DemoexistingShapes.push(shape);
         // Redraw with the newly added shape
-        DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts);
+        DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts, theme);
     })
 
     // Draw preview while dragging without losing previous shapes
     canvas.addEventListener("mousemove", (e) => {
-        if (clicked) {
+        if (clicked && !isTyping) {
             const width = e.clientX - startX;
             const height = e.clientY - startY;
-            DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts);
-            ctx.strokeStyle = "rgba(0, 0, 0, 1)";
+            DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts, theme);
+            const strokeColor = theme === 'dark' ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 1)";
+            ctx.strokeStyle = strokeColor;
             //@ts-expect-error - selectedShape is set on window object
             const selectedShape = window.selectedShape;
             if (selectedShape === "rect") {
@@ -689,17 +802,20 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
             const val = typingBuffer.trim();
             if (val.length > 0) {
                 DemoexistingShapes.push({ type: "text", x: typingX, y: typingY, text: val });
-                DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts);
+                DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts, theme);
             }
             typingBuffer = "";
             isTyping = false;
+            stopCaretBlink();
+            renderAll();
             return;
         }
         if (ke.key === "Escape") {
             ke.preventDefault();
             typingBuffer = "";
             isTyping = false;
-            DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts);
+            stopCaretBlink();
+            renderAll();
             return;
         }
         if (ke.key === "Backspace") {
@@ -712,13 +828,7 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
             return;
         }
         // Preview current typing without committing
-        DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts);
-        ctx.fillStyle = opts.textColor;
-        ctx.font = opts.textFont; // always reset font to avoid shrinking
-        ctx.textBaseline = "top";
-        if (typingBuffer.length > 0) {
-            ctx.fillText(typingBuffer, typingX, typingY);
-        }
+        renderAll();
     })
 }
 
@@ -726,25 +836,30 @@ function DemoClearCanvas(
     canvas: HTMLCanvasElement,
     DemoexistingShapes: Shape[],
     ctx: CanvasRenderingContext2D,
-    opts?: Required<DemoDrawOptions>
+    opts?: Required<DemoDrawOptions>,
+    theme: string = 'light'
 ) {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = "rgba(255, 255, 255)";
+    ctx.fillStyle = theme === 'dark' ? "rgba(0, 0, 0)" : "rgba(255, 255, 255)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const strokeColor = theme === 'dark' ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 1)";
+    const textColor = theme === 'dark' ? "rgba(255, 255, 255, 0.9)" : (opts?.textColor || "rgba(0, 0, 0, 1)");
 
     DemoexistingShapes.filter(shape => shape && shape.type).map((shape) => {
         if (shape.type === "rect") {
-            ctx.strokeStyle = "rgba(0, 0, 0)";
+            ctx.strokeStyle = strokeColor;
             ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
         }
         else if (shape.type === "circle") {
+            ctx.strokeStyle = strokeColor;
             ctx.beginPath();
             ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, Math.PI * 2);
             ctx.stroke();
             ctx.closePath();
         }
         else if (shape.type === "pencil") {
-            ctx.strokeStyle = "rgba(0, 0, 0)";
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(shape.startX, shape.startY);
@@ -753,7 +868,7 @@ function DemoClearCanvas(
             ctx.closePath();
         }
         else if (shape.type === "diamond") {
-            ctx.strokeStyle = "rgba(0, 0, 0)";
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 2;
 
             const halfWidth = shape.width / 2;
@@ -774,7 +889,7 @@ function DemoClearCanvas(
             ctx.stroke();
         }
         else if (shape.type === "arrow") {
-            ctx.strokeStyle = "rgba(0, 0, 0)";
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 2;
             
             // Draw the main arrow line
@@ -802,14 +917,14 @@ function DemoClearCanvas(
             ctx.stroke();
         }
         else if (shape.type === "text") {
-            ctx.fillStyle = opts?.textColor || "rgba(0, 0, 0, 1)";
+            ctx.fillStyle = textColor;
             ctx.font = opts?.textFont || "16px sans-serif";
             ctx.textBaseline = "top";
             ctx.fillText(shape.text, shape.x, shape.y);
         }
         else if (shape.type === "free") {
             if (shape.points.length > 1) {
-                ctx.strokeStyle = "rgba(0, 0, 0)";
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(shape.points[0].x, shape.points[0].y);
@@ -822,25 +937,28 @@ function DemoClearCanvas(
     })
 }
 
-function clearCanvas(canvas: HTMLCanvasElement, existingShapes: Shape[], ctx: CanvasRenderingContext2D) {
+function clearCanvas(canvas: HTMLCanvasElement, existingShapes: Shape[], ctx: CanvasRenderingContext2D, theme: string = 'light') {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = "rgba(255, 255, 255)";
+    ctx.fillStyle = theme === 'dark' ? "rgba(0, 0, 0)" : "rgba(255, 255, 255)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const strokeColor = theme === 'dark' ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 1)";
+    const textColor = theme === 'dark' ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 1)";
 
     existingShapes.filter(shape => shape && shape.type).map((shape) => {
         if (shape.type === "rect") {
-            ctx.strokeStyle = "rgba(0, 0, 0)";
+            ctx.strokeStyle = strokeColor;
             ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
         }
         else if (shape.type === "circle") {
-            ctx.strokeStyle = "rgba(0, 0, 0)";
+            ctx.strokeStyle = strokeColor;
             ctx.beginPath();
             ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, Math.PI * 2);
             ctx.stroke();
             ctx.closePath();
         }
         else if (shape.type === "pencil") {
-            ctx.strokeStyle = "rgba(0, 0, 0)";
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(shape.startX, shape.startY);
@@ -849,7 +967,7 @@ function clearCanvas(canvas: HTMLCanvasElement, existingShapes: Shape[], ctx: Ca
             ctx.closePath();
         }
         else if (shape.type === "diamond") {
-            ctx.strokeStyle = "rgba(0, 0, 0)";
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 2;
 
             const halfWidth = shape.width / 2;
@@ -870,7 +988,7 @@ function clearCanvas(canvas: HTMLCanvasElement, existingShapes: Shape[], ctx: Ca
             ctx.stroke();
         }
         else if (shape.type === "arrow") {
-            ctx.strokeStyle = "rgba(0, 0, 0)";
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 2;
             
             // Draw the main arrow line
@@ -897,9 +1015,15 @@ function clearCanvas(canvas: HTMLCanvasElement, existingShapes: Shape[], ctx: Ca
             ctx.lineTo(arrowX2, arrowY2);
             ctx.stroke();
         }
+        else if (shape.type === "text") {
+            ctx.fillStyle = textColor;
+            ctx.font = "40px Virgil, sans-serif";
+            ctx.textBaseline = "top";
+            ctx.fillText(shape.text, shape.x, shape.y);
+        }
         else if (shape.type === "free") {
             if (shape.points.length > 1) {
-                ctx.strokeStyle = "rgba(0, 0, 0)";
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(shape.points[0].x, shape.points[0].y);

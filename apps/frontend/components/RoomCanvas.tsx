@@ -1,7 +1,7 @@
 "use client";
 
 import { initDraw } from "@/draw";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Dockbar } from "./Dockbar";
 import { WS_URL } from "@/config";
 import {
@@ -23,6 +23,7 @@ import { HomeIcon, SettingsIcon, PaletteIcon, ShareIcon, SunIcon, MoonIcon, Moon
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { SmoothCursor } from "./ui/smooth-cursor";
 
 type Shape = "rect" | "diamond" | "circle" | "pencil" | "arrow" | "free" | "text" | "eraser";
 
@@ -35,6 +36,14 @@ interface Room {
 
 interface UserData {
     userId: string;
+}
+
+interface CursorData {
+    x: number;
+    y: number;
+    userId: string;
+    color: string;
+    lastSeen: number;
 }
 
 export default function RoomCanvas({ roomId }: { roomId: string }) {
@@ -50,10 +59,55 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
     const [userRooms, setUserRooms] = useState<Room[]>([]);
     const [loadingRooms, setLoadingRooms] = useState(false);
 
+    // Collaborative cursor state
+    const [otherUsersCursors, setOtherUsersCursors] = useState<Map<string, CursorData>>(new Map());
+    const [myCursorColor, setMyCursorColor] = useState<string>("");
+    const [myCursorPosition, setMyCursorPosition] = useState<{x: number, y: number} | null>(null);
+    const cursorThrottleRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Generate random vibrant color for cursor
+    const generateRandomColor = (): string => {
+        const hue = Math.floor(Math.random() * 360);
+        const saturation = 70 + Math.random() * 30; // 70-100%
+        const lightness = 50 + Math.random() * 20; // 50-70%
+        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    };
+
+    // Send cursor position to other users
+    const sendCursorPosition = useCallback((x: number, y: number) => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        
+        socket.send(JSON.stringify({
+            type: "cursor_position",
+            cursorData: {
+                x,
+                y,
+                color: myCursorColor
+            },
+            roomId
+        }));
+    }, [socket, roomId, myCursorColor]);
+
+    // Throttled cursor position sending
+    const throttledSendCursorPosition = useCallback((x: number, y: number) => {
+        if (cursorThrottleRef.current) {
+            clearTimeout(cursorThrottleRef.current);
+        }
+        
+        cursorThrottleRef.current = setTimeout(() => {
+            sendCursorPosition(x, y);
+        }, 16); // ~60fps
+    }, [sendCursorPosition]);
+
     useEffect(() => {
         //@ts-expect-error - selectedShape is set on window object
         window.selectedShape = selectedShape
     }, [selectedShape])
+
+    // Initialize cursor color on mount
+    useEffect(() => {
+        setMyCursorColor(generateRandomColor());
+    }, []);
 
     useEffect(() => {
         if (canvasRef.current) {
@@ -79,16 +133,16 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
             // Resize on window resize
             window.addEventListener('resize', resizeCanvas);
             
-            // Initialize drawing with socket
+            // Initialize drawing with socket and theme
             if (socket) {
-                initDraw(canvas, roomId, socket);
+                initDraw(canvas, roomId, socket, theme);
             }
             
             return () => {
                 window.removeEventListener('resize', resizeCanvas);
             };
         }
-    }, [canvasRef, roomId, socket])
+    }, [canvasRef, roomId, socket, theme])
 
     // WebSocket connection
     useEffect(() => {
@@ -109,6 +163,24 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
             });
             console.log('Joining room:', joinRoomData);
             ws.send(joinRoomData);
+        }
+
+        ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            
+            if (message.type === "cursor_position") {
+                const { cursorData } = message;
+                const now = Date.now();
+                
+                setOtherUsersCursors(prev => {
+                    const newMap = new Map(prev);
+                    newMap.set(cursorData.userId, {
+                        ...cursorData,
+                        lastSeen: now
+                    });
+                    return newMap;
+                });
+            }
         }
 
         ws.onerror = (error) => {
@@ -136,6 +208,35 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
             }
         }
     }, [roomId])
+
+    // Clean up inactive cursors
+    useEffect(() => {
+        const cleanupInterval = setInterval(() => {
+            const now = Date.now();
+            setOtherUsersCursors(prev => {
+                const newMap = new Map();
+                prev.forEach((cursor, userId) => {
+                    if (now - cursor.lastSeen < 5000) { // Keep cursors for 5 seconds
+                        newMap.set(userId, cursor);
+                    }
+                });
+                return newMap;
+            });
+        }, 1000);
+
+        return () => clearInterval(cleanupInterval);
+    }, []);
+
+    // Track mouse movement for cursor broadcasting
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            setMyCursorPosition({ x: e.clientX, y: e.clientY });
+            throttledSendCursorPosition(e.clientX, e.clientY);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        return () => document.removeEventListener('mousemove', handleMouseMove);
+    }, [socket, roomId, myCursorColor, throttledSendCursorPosition]);
 
     // Authentication check function
     const checkAuth = async () => {
@@ -445,10 +546,39 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
                             ref={canvasRef}
                             className="w-full h-full border-0"
                             style={{ 
-                                backgroundColor: theme === 'dark' ? '#1f2937' : 'white',
-                                cursor: 'crosshair'
+                                backgroundColor: theme === 'dark' ? 'black' : 'white',
+                                cursor: 'none'
                             }}
                         ></canvas>
+
+                        {/* Current user's cursor */}
+                        {myCursorPosition && myCursorColor && (
+                            <SmoothCursor
+                                color={myCursorColor}
+                                size={20}
+                                disabled={false}
+                                hideOnLeave={true}
+                                rotateOnMove={true}
+                                scaleOnClick={true}
+                                glowEffect={true}
+                                externalPosition={myCursorPosition}
+                            />
+                        )}
+
+                        {/* Other users' cursors */}
+                        {Array.from(otherUsersCursors.values()).map((cursor) => (
+                            <SmoothCursor
+                                key={cursor.userId}
+                                color={cursor.color}
+                                size={20}
+                                disabled={false}
+                                hideOnLeave={false}
+                                rotateOnMove={true}
+                                scaleOnClick={false}
+                                glowEffect={true}
+                                externalPosition={{ x: cursor.x, y: cursor.y }}
+                            />
+                        ))}
 
                         {/* Zoom controls - Bottom left */}
                         <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-30 flex items-center gap-1 sm:gap-2 bg-card/90 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 drop-shadow-lg">

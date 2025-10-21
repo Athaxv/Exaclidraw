@@ -26,7 +26,7 @@ export function Canvas({ roomId, socket }: { roomId: string, socket: WebSocket }
         }
     }, [canvasRef, roomId, socket])
 
-    return <div className="flex flex-col w-full h-full bg-white dark:bg-background">
+    return <div className="flex flex-col w-full h-full bg-background">
     <div className="flex-1 flex items-center justify-center relative w-full h-full">
       {/* Dockbar overlayed inside canvas area */}
       <div className="absolute top-4 z-10 px-4 py-2 flex">
@@ -36,8 +36,8 @@ export function Canvas({ roomId, socket }: { roomId: string, socket: WebSocket }
         height="730"
         ref={canvasRef}
         width="1500"
-        className="w-full h-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
-        style={{ backgroundColor: 'white' }}
+        className="w-full h-full rounded-lg border border-border bg-background"
+        style={{ backgroundColor: 'var(--background)' }}
       ></canvas>
     </div>
   </div>

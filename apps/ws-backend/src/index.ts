@@ -116,6 +116,33 @@ wss.on("connection", function connection(ws, request) {
             })
 
         }
+
+        if (parsedData.type == "cursor_position") {
+            const roomId = parsedData.roomId
+            const cursorData = parsedData.cursorData;
+
+            const user = users.find(x => x.ws === ws);
+            const userId = user?.userId;
+
+            if (!userId) {
+                console.log("No user was found with this userId");
+                return;
+            }
+
+            // Broadcast cursor position to all users in the same room (except sender)
+            users.forEach(user => {
+                if (user.rooms.includes(roomId) && user.userId !== userId) {
+                    user.ws.send(JSON.stringify({
+                        type: "cursor_position",
+                        cursorData: {
+                            ...cursorData,
+                            userId
+                        },
+                        roomId
+                    }))
+                }
+            })
+        }
     })
 
 })
