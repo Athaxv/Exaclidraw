@@ -1,8 +1,9 @@
 "use client"
 
 import React, { useState } from 'react';
-import { Mail, Github, X, ArrowRight, ChevronLeft } from 'lucide-react';
+import { Mail, ArrowRight, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from "sonner";
 
 type AuthMode = 'welcome' | 'email' | 'signup';
 
@@ -60,7 +61,9 @@ const AuthPage: React.FC = () => {
       })
       const data = await resp.json();
       console.log(data);
+      
       if (resp.ok){
+        toast.success("Welcome back!");
         const { userId: token } = data; // backend returns token in userId
         localStorage.setItem('auth_token', token);
         
@@ -86,19 +89,32 @@ const AuthPage: React.FC = () => {
             router.push(`/canvas/${newRoomId}`);
           } else {
             console.error('Failed to create room:', roomData);
+            toast.error('Failed to create room, redirecting to demo');
             // Fallback to random room if room creation fails
             const fallbackRoomId = Math.random().toString(36).substring(2, 15);
             router.push(`/canvas/${fallbackRoomId}`);
           }
         } catch (roomError) {
           console.error('Error creating room:', roomError);
+          toast.error('Failed to create room, redirecting to demo');
           // Fallback to random room if room creation fails
           const fallbackRoomId = Math.random().toString(36).substring(2, 15);
           router.push(`/canvas/${fallbackRoomId}`);
         }
+      } else {
+        // Handle error responses
+        const errorMessage = data.message || 'Sign in failed';
+        if (resp.status === 401) {
+          toast.error('Invalid email or password');
+        } else if (resp.status === 500) {
+          toast.error('Server error. Please try again later.');
+        } else {
+          toast.error(errorMessage);
+        }
       }
     } catch (error) {
       console.log("Error signing in", error);
+      toast.error('Network error. Please check your connection.');
     }
     finally {
       setIsLoading(false);
@@ -110,7 +126,6 @@ const AuthPage: React.FC = () => {
     if (!validateForm()) return;
     
     setIsLoading(true);
-    // Simulate API call
 
     try {
       const resp = await fetch('/auth/v1/signup', {
@@ -122,11 +137,26 @@ const AuthPage: React.FC = () => {
       })
       const data = await resp.json();
       console.log(data);
+      
       if (resp.ok) {
+        toast.success("Account created successfully!");
         router.push('/signin');
+      } else {
+        // Handle error responses
+        const errorMessage = data.message || 'Sign up failed';
+        if (resp.status === 409) {
+          toast.error('User already exists with this email');
+        } else if (resp.status === 400) {
+          toast.error('Invalid input. Please check your details.');
+        } else if (resp.status === 500) {
+          toast.error('Server error. Please try again later.');
+        } else {
+          toast.error(errorMessage);
+        }
       }
     } catch (error) {
       console.log("Error", error);
+      toast.error('Network error. Please check your connection.');
     }
     finally {
       setIsLoading(false);
@@ -146,66 +176,29 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  const handleGoogleAuth = () => {
-    console.log('Google auth');
-  };
-
-  const handleGithubAuth = () => {
-    console.log('Github auth');
-  };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        * {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-
-        .fade-in {
-          animation: fadeIn 0.3s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .subtle-border {
-          border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .subtle-border-hover:hover {
-          border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus {
-          -webkit-box-shadow: 0 0 0 30px #1a1a1a inset !important;
-          -webkit-text-fill-color: #ffffff !important;
-        }
-
-        .logo-animation {
-          animation: logoFloat 3s ease-in-out infinite;
-        }
-
-        @keyframes logoFloat {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-      `}</style>
-
-      <div className="w-full max-w-md fade-in">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         {/* Card Container */}
-        <div className="bg-zinc-900 rounded-2xl subtle-border p-8 md:p-10">
+        <div className="bg-card text-card-foreground rounded-2xl border border-border p-8 md:p-10">
+          {/* Theme Toggle */}
+          <div className="flex justify-end mb-2">
+            {/* <button
+              aria-label="Toggle theme"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="inline-flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              <span className="text-sm">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button> */}
+          </div>
           
           {/* Back Button */}
           {authMode !== 'welcome' && (
             <button
               onClick={() => setAuthMode('welcome')}
-              className="mb-8 -ml-2 p-2 rounded-lg hover:bg-zinc-800 transition-colors inline-flex items-center text-gray-400 hover:text-white"
+              className="mb-8 -ml-2 p-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors inline-flex items-center text-muted-foreground"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -213,9 +206,9 @@ const AuthPage: React.FC = () => {
 
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center logo-animation">
+            <div className="w-14 h-14 bg-primary text-primary-foreground rounded-xl flex items-center justify-center">
               <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <path d="M8 8C8 8 12 4 16 4C20 4 24 8 24 12C24 16 20 20 16 20C16 20 20 24 24 24C24 24 28 20 28 16C28 8 24 4 16 4C8 4 4 8 4 16C4 24 8 28 16 28" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M8 8C8 8 12 4 16 4C20 4 24 8 24 12C24 16 20 20 16 20C16 20 20 24 24 24C24 24 28 20 28 16C28 8 24 4 16 4C8 4 4 8 4 16C4 24 8 28 16 28" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
           </div>
@@ -223,18 +216,19 @@ const AuthPage: React.FC = () => {
           {/* Welcome Mode */}
           {authMode === 'welcome' && (
             <>
-              <h1 className="text-2xl font-semibold text-white text-center mb-3">
+              <h1 className="virgil text-2xl font-semibold text-center mb-3">
                 Welcome Back
               </h1>
-              <p className="text-gray-400 text-center text-sm mb-8">
+              <p className="text-muted-foreground text-center text-sm mb-8">
                 Enter your credentials to access your account.
               </p>
 
               <div className="space-y-3">
                 {/* Google Button */}
+                {/*
                 <button
                   onClick={handleGoogleAuth}
-                  className="w-full py-3.5 px-4 bg-white text-black rounded-xl font-medium hover:bg-gray-100 transition-all duration-200 flex items-center justify-center gap-3 group"
+                  className="w-full py-3.5 px-4 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-all duration-200 flex items-center justify-center gap-3 group"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -244,6 +238,7 @@ const AuthPage: React.FC = () => {
                   </svg>
                   <span>Continue with Google</span>
                 </button>
+                */}
 
                 <div className="flex items-center gap-3 py-2">
                   <div className="flex-1 h-px bg-zinc-800"></div>
@@ -254,35 +249,20 @@ const AuthPage: React.FC = () => {
                 {/* Email Button */}
                 <button
                   onClick={() => setAuthMode('email')}
-                  className="w-full py-3.5 px-4 bg-zinc-800 text-white rounded-xl font-medium hover:bg-zinc-700 transition-all duration-200 flex items-center justify-center gap-3 subtle-border subtle-border-hover"
+                  className="w-full py-3.5 px-4 bg-secondary text-secondary-foreground rounded-xl font-medium hover:bg-accent hover:text-accent-foreground transition-all duration-200 flex items-center justify-center gap-3"
                 >
                   <Mail className="w-5 h-5" />
                   <span>Continue with Email</span>
                 </button>
 
-                {/* GitHub Button */}
-                <button
-                  onClick={handleGithubAuth}
-                  className="w-full py-3.5 px-4 bg-zinc-800 text-white rounded-xl font-medium hover:bg-zinc-700 transition-all duration-200 flex items-center justify-center gap-3 subtle-border subtle-border-hover"
-                >
-                  <Github className="w-5 h-5" />
-                  <span>Continue with GitHub</span>
-                </button>
-
-                {/* Skip Button */}
-                <button
-                  className="w-full py-3.5 px-4 bg-transparent text-gray-400 rounded-xl font-medium hover:bg-zinc-800 hover:text-white transition-all duration-200 subtle-border"
-                >
-                  Skip for now
-                </button>
               </div>
 
               {/* Terms */}
-              <p className="text-gray-500 text-xs text-center mt-8">
+              <p className="text-muted-foreground text-xs text-center mt-8">
                 By logging in, you agree to our{' '}
-                <a href="#" className="text-white hover:underline">Terms of Service</a>
+                <a href="#" className="hover:underline">Terms of Service</a>
                 {' '}and{' '}
-                <a href="#" className="text-white hover:underline">Privacy Policy</a>.
+                <a href="#" className="hover:underline">Privacy Policy</a>.
               </p>
             </>
           )}
@@ -290,16 +270,16 @@ const AuthPage: React.FC = () => {
           {/* Email Sign In Mode */}
           {authMode === 'email' && (
             <>
-              <h1 className="text-2xl font-semibold text-white text-center mb-3">
+              <h1 className="virgil text-2xl font-semibold text-center mb-3">
                 Sign in with Email
               </h1>
-              <p className="text-gray-400 text-center text-sm mb-8">
+              <p className="text-muted-foreground text-center text-sm mb-8">
                 Enter your email and password to continue.
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Email
                   </label>
                   <input
@@ -307,7 +287,7 @@ const AuthPage: React.FC = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
+                    className="w-full px-4 py-3 bg-input border border-input rounded-xl placeholder:text-muted-foreground/70 focus:outline-none transition-colors"
                     placeholder="you@example.com"
                   />
                   {errors.email && (
@@ -317,10 +297,10 @@ const AuthPage: React.FC = () => {
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-300">
+                    <label className="block text-sm font-medium text-muted-foreground">
                       Password
                     </label>
-                    <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                    <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                       Forgot?
                     </a>
                   </div>
@@ -329,7 +309,7 @@ const AuthPage: React.FC = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
+                    className="w-full px-4 py-3 bg-input border border-input rounded-xl placeholder:text-muted-foreground/70 focus:outline-none transition-colors"
                     placeholder="••••••••"
                   />
                   {errors.password && (
@@ -340,10 +320,10 @@ const AuthPage: React.FC = () => {
                 <button
                   onClick={handleSignin}
                   disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-white text-black rounded-xl font-medium hover:bg-gray-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <>
                       <span>Continue</span>
@@ -354,11 +334,11 @@ const AuthPage: React.FC = () => {
               </div>
 
               <div className="mt-6 text-center">
-                <p className="text-gray-400 text-sm">
-                  Don't have an account?{' '}
+                <p className="text-muted-foreground text-sm">
+                  Don&apos;t have an account?{' '}
                   <button
-                    onClick={() => setAuthMode('signup')}
-                    className="text-white font-medium hover:underline"
+                    onClick={() => router.push('/signup')}
+                    className="font-medium hover:underline"
                   >
                     Sign up
                   </button>
@@ -370,16 +350,16 @@ const AuthPage: React.FC = () => {
           {/* Sign Up Mode */}
           {authMode === 'signup' && (
             <>
-              <h1 className="text-2xl font-semibold text-white text-center mb-3">
+              <h1 className="virgil text-2xl font-semibold text-center mb-3">
                 Create Account
               </h1>
-              <p className="text-gray-400 text-center text-sm mb-8">
+              <p className="text-muted-foreground text-center text-sm mb-8">
                 Sign up to get started with your account.
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Full Name
                   </label>
                   <input
@@ -387,7 +367,7 @@ const AuthPage: React.FC = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
+                    className="w-full px-4 py-3 bg-input border border-input rounded-xl placeholder:text-muted-foreground/70 focus:outline-none transition-colors"
                     placeholder="John Doe"
                   />
                   {errors.name && (
@@ -396,7 +376,7 @@ const AuthPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Email
                   </label>
                   <input
@@ -404,7 +384,7 @@ const AuthPage: React.FC = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
+                    className="w-full px-4 py-3 bg-input border border-input rounded-xl placeholder:text-muted-foreground/70 focus:outline-none transition-colors"
                     placeholder="you@example.com"
                   />
                   {errors.email && (
@@ -413,7 +393,7 @@ const AuthPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Password
                   </label>
                   <input
@@ -421,7 +401,7 @@ const AuthPage: React.FC = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
+                    className="w-full px-4 py-3 bg-input border border-input rounded-xl placeholder:text-muted-foreground/70 focus:outline-none transition-colors"
                     placeholder="At least 8 characters"
                   />
                   {errors.password && (
@@ -432,10 +412,10 @@ const AuthPage: React.FC = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-white text-black rounded-xl font-medium hover:bg-gray-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <>
                       <span>Create Account</span>
@@ -446,11 +426,11 @@ const AuthPage: React.FC = () => {
               </div>
 
               <div className="mt-6 text-center">
-                <p className="text-gray-400 text-sm">
+                <p className="text-muted-foreground text-sm">
                   Already have an account?{' '}
                   <button
-                    onClick={() => setAuthMode('email')}
-                    className="text-white font-medium hover:underline"
+                    onClick={() => router.push('/signin')}
+                    className="font-medium hover:underline"
                   >
                     Sign in
                   </button>
@@ -458,11 +438,11 @@ const AuthPage: React.FC = () => {
               </div>
 
               {/* Terms */}
-              <p className="text-gray-500 text-xs text-center mt-6">
+              <p className="text-muted-foreground text-xs text-center mt-6">
                 By creating an account, you agree to our{' '}
-                <a href="#" className="text-white hover:underline">Terms of Service</a>
+                <a href="#" className="hover:underline">Terms of Service</a>
                 {' '}and{' '}
-                <a href="#" className="text-white hover:underline">Privacy Policy</a>.
+                <a href="#" className="hover:underline">Privacy Policy</a>.
               </p>
             </>
           )}

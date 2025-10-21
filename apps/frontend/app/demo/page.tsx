@@ -565,7 +565,7 @@ export function DemoCanvas(){
             {collabMode === "create" && (
               <div className="space-y-3">
                 <div>
-                  <label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">Your Name</label>
+                  <label htmlFor="username" className="text-sm font-medium text-foreground">Your Name</label>
                   <Input id="username" placeholder="Enter your name" value={username} onChange={(e) => setUsername(e.target.value)} className="mt-1" />
                 </div>
                 <button
@@ -573,15 +573,35 @@ export function DemoCanvas(){
                     const authed = await checkAuth();
                     if (!authed) { router.push('/signin'); return; }
                     if (username.trim()) {
-                      const token = localStorage.getItem('auth_token') || '';
-                      const resp = await fetch('http://localhost:5000/room', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: token },
-                        body: JSON.stringify({ username })
-                      });
-                      const data = await resp.json();
-                      const roomId = data?.message?.id; // prisma returns numeric id
-                      router.push(`/canvas/${roomId}?username=${encodeURIComponent(username)}`);
+                      try {
+                        const token = localStorage.getItem('auth_token') || '';
+                        const resp = await fetch('/room', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', Authorization: token },
+                          body: JSON.stringify({ username })
+                        });
+                        const data = await resp.json();
+                        
+                        if (resp.ok && data?.message?.id) {
+                          const roomId = data.message.id;
+                          toast.success("Room created successfully!", {
+                            description: `Redirecting to your new room...`,
+                            duration: 2000,
+                          });
+                          setShowCollabDialog(false); // Close dialog
+                          router.push(`/canvas/${roomId}`);
+                        } else {
+                          toast.error("Failed to create room", {
+                            description: data?.message || "Please try again",
+                            duration: 3000,
+                          });
+                        }
+                      } catch (error) {
+                        toast.error("Failed to create room", {
+                          description: "Network error. Please try again.",
+                          duration: 3000,
+                        });
+                      }
                     }
                   }}
                   disabled={!username.trim()}
@@ -595,27 +615,50 @@ export function DemoCanvas(){
             {collabMode === "join" && (
               <div className="space-y-3">
                 <div>
-                  <label htmlFor="roomslug" className="text-sm font-medium text-gray-700 dark:text-gray-300">Room Username</label>
-                  <Input id="roomslug" placeholder="Enter room username" value={roomSlug} onChange={(e) => setRoomSlug(e.target.value)} className="mt-1" />
-                </div>
-                <div>
-                  <label htmlFor="join-username" className="text-sm font-medium text-gray-700 dark:text-gray-300">Your Name</label>
-                  <Input id="join-username" placeholder="Enter your name" value={username} onChange={(e) => setUsername(e.target.value)} className="mt-1" />
+                  <label htmlFor="roomurl" className="text-sm font-medium text-foreground">Room URL</label>
+                  <Input 
+                    id="roomurl" 
+                    placeholder="Paste room URL (e.g., https://yoursite.com/canvas/123)" 
+                    value={roomSlug}  // Reuse roomSlug state for URL
+                    onChange={(e) => setRoomSlug(e.target.value)} 
+                    className="mt-1" 
+                  />
                 </div>
                 <button
                   onClick={async () => {
                     const authed = await checkAuth();
-                    if (!authed) { router.push('/signin'); return; }
-                    if (roomSlug.trim() && username.trim()) {
-                      const resp = await fetch(`http://localhost:5000/room/${roomSlug}`);
-                      const data = await resp.json();
-                      const roomId = data?.room?.id;
-                      if (roomId) {
-                        router.push(`/canvas/${roomId}?username=${encodeURIComponent(username)}`);
+                    if (!authed) { 
+                      router.push('/signin'); 
+                      return; 
+                    }
+                    
+                    if (roomSlug.trim()) {
+                      try {
+                        // Extract roomId from URL
+                        const urlMatch = roomSlug.match(/\/canvas\/(\d+)/);
+                        if (!urlMatch) {
+                          toast.error("Invalid room URL", {
+                            description: "Please enter a valid room URL",
+                            duration: 3000,
+                          });
+                          return;
+                        }
+                        
+                        const roomId = urlMatch[1];
+                        toast.success("Joining room...", {
+                          duration: 2000,
+                        });
+                        setShowCollabDialog(false);
+                        router.push(`/canvas/${roomId}`);
+                      } catch (error) {
+                        toast.error("Failed to join room", {
+                          description: "Please check the URL and try again",
+                          duration: 3000,
+                        });
                       }
                     }
                   }}
-                  disabled={!roomSlug.trim() || !username.trim()}
+                  disabled={!roomSlug.trim()}
                   className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Join Room
