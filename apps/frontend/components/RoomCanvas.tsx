@@ -1,7 +1,7 @@
 "use client";
 
 import { initDraw } from "@/draw";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { Dockbar } from "./Dockbar";
 import { WS_URL } from "@/config";
 import {
@@ -24,6 +24,8 @@ import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { SmoothCursor } from "./ui/smooth-cursor";
+import { AvatarCircles } from "./ui/avatar-circles";
+import confetti from 'canvas-confetti';
 
 type Shape = "rect" | "diamond" | "circle" | "pencil" | "arrow" | "free" | "text" | "eraser";
 
@@ -64,6 +66,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
     const [myCursorColor, setMyCursorColor] = useState<string>("");
     const [myCursorPosition, setMyCursorPosition] = useState<{x: number, y: number} | null>(null);
     const cursorThrottleRef = useRef<NodeJS.Timeout | null>(null);
+    const userAvatarMap = useRef<Map<string, string>>(new Map());
 
     // Generate random vibrant color for cursor
     const generateRandomColor = (): string => {
@@ -77,7 +80,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
     const sendCursorPosition = useCallback((x: number, y: number) => {
         if (!socket || socket.readyState !== WebSocket.OPEN) return;
         
-        socket.send(JSON.stringify({
+        const message = {
             type: "cursor_position",
             cursorData: {
                 x,
@@ -85,7 +88,10 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
                 color: myCursorColor
             },
             roomId
-        }));
+        };
+        
+        console.log('Sending cursor position:', message);
+        socket.send(JSON.stringify(message));
     }, [socket, roomId, myCursorColor]);
 
     // Throttled cursor position sending
@@ -155,22 +161,62 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
         const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
 
         ws.onopen = () => {
-            console.log('WebSocket connected');
+            console.log('WebSocket connected, joining roomId:', roomId);
             setSocket(ws);
             const joinRoomData = JSON.stringify({
                 type: "join_room",
-                roomId
+                roomId,
+                cursorColor: myCursorColor
             });
-            console.log('Joining room:', joinRoomData);
+            console.log('Sending join_room message:', joinRoomData);
             ws.send(joinRoomData);
         }
 
         ws.onmessage = (event) => {
             const message = JSON.parse(event.data);
+            console.log('WebSocket message received:', message);
+            
+            if (message.type === "user_joined") {
+                const { userId, color } = message;
+                
+                // Show toast notification
+                toast.success("New collaborator joined!", {
+                    description: `User ${userId.slice(0, 8)} joined the room`,
+                    duration: 3000,
+                });
+                
+                // Trigger confetti from bottom
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 1.0, x: 0.5 }, // Bottom center
+                    colors: [color || '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b'],
+                    startVelocity: 45,
+                    gravity: 0.8,
+                    ticks: 200
+                });
+                
+                setOtherUsersCursors(prev => {
+                    const newMap = new Map(prev);
+                    if (!newMap.has(userId)) {
+                        newMap.set(userId, {
+                            x: 0,
+                            y: 0,
+                            userId,
+                            color: color || `hsl(${Math.random() * 360}, 70%, 60%)`,
+                            lastSeen: Date.now()
+                        });
+                        console.log('User joined:', userId);
+                    }
+                    return newMap;
+                });
+            }
             
             if (message.type === "cursor_position") {
                 const { cursorData } = message;
                 const now = Date.now();
+                
+                console.log('Processing cursor_position for userId:', cursorData.userId);
                 
                 setOtherUsersCursors(prev => {
                     const newMap = new Map(prev);
@@ -178,6 +224,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
                         ...cursorData,
                         lastSeen: now
                     });
+                    console.log('Updated otherUsersCursors:', Array.from(newMap.entries()));
                     return newMap;
                 });
             }
@@ -207,7 +254,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
                 ws.close();
             }
         }
-    }, [roomId])
+    }, [roomId, myCursorColor])
 
     // Clean up inactive cursors
     useEffect(() => {
@@ -238,6 +285,45 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
         return () => document.removeEventListener('mousemove', handleMouseMove);
     }, [socket, roomId, myCursorColor, throttledSendCursorPosition]);
 
+    // Generate avatar data from cursor state
+    const collaboratorAvatars = useMemo(() => {
+        // Array of available avatar images from public folder
+        const availableAvatars = [
+            '/img1.png',
+            '/img2.png',
+            '/img3.png',
+            '/img4.png',
+            '/img5.png',
+            '/img6.png'
+        ];
+        
+        // Helper function to get random avatar (stable per user)
+        const getRandomAvatar = (userId: string) => {
+            // If user doesn't have an avatar yet, assign a random one
+            if (!userAvatarMap.current.has(userId)) {
+                const randomIndex = Math.floor(Math.random() * availableAvatars.length);
+                userAvatarMap.current.set(userId, availableAvatars[randomIndex]);
+            }
+            return userAvatarMap.current.get(userId)!;
+        };
+        
+        const avatars = Array.from(otherUsersCursors.entries()).map(([userId]) => ({
+            imageUrl: getRandomAvatar(userId),
+            profileUrl: `#user-${userId}`
+        }));
+        
+        // Add current user to the list (always include current user)
+        if (userData?.userId) {
+            avatars.push({
+                imageUrl: getRandomAvatar(userData.userId),
+                profileUrl: '#current-user'
+            });
+        }
+        
+        console.log('Collaborator avatars generated:', avatars.length, 'avatars');
+        return avatars;
+    }, [otherUsersCursors, userData?.userId]);
+
     // Authentication check function
     const checkAuth = async () => {
         try {
@@ -248,6 +334,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
             });
             if (res.ok) {
                 const data = await res.json();
+                console.log('User authenticated with data:', data);
                 setUserData(data);
                 setIsAuthenticated(true);
                 return true;
@@ -522,6 +609,16 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
                                 />
                             </div>
                             <div className="flex items-center gap-2 pointer-events-auto">
+                                {/* Collaborator avatars */}
+                                {collaboratorAvatars.length > 0 && (
+                                    <div className="px-2 py-2">
+                                        <AvatarCircles 
+                                            avatarUrls={collaboratorAvatars}
+                                            numPeople={0}
+                                            className="mr-2"
+                                        />
+                                    </div>
+                                )}
                                 <div className="p-2 pt-2">
                                     <button
                                         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -547,23 +644,9 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
                             className="w-full h-full border-0"
                             style={{ 
                                 backgroundColor: theme === 'dark' ? 'black' : 'white',
-                                cursor: 'none'
+                                cursor: 'crosshair'
                             }}
                         ></canvas>
-
-                        {/* Current user's cursor */}
-                        {myCursorPosition && myCursorColor && (
-                            <SmoothCursor
-                                color={myCursorColor}
-                                size={20}
-                                disabled={false}
-                                hideOnLeave={true}
-                                rotateOnMove={true}
-                                scaleOnClick={true}
-                                glowEffect={true}
-                                externalPosition={myCursorPosition}
-                            />
-                        )}
 
                         {/* Other users' cursors */}
                         {Array.from(otherUsersCursors.values()).map((cursor) => (
