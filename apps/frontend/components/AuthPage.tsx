@@ -24,6 +24,15 @@ const AuthPage: React.FC = () => {
   });
   const [errors, setErrors] = useState<Partial<FormData>>({});
 
+  const generateRandomUsername = () => {
+    const adjectives = ['bold', 'calm', 'swift', 'wise', 'happy', 'brave', 'cool', 'epic', 'neat', 'rad'];
+    const nouns = ['panda', 'tiger', 'eagle', 'shark', 'wolf', 'fox', 'lion', 'bear', 'owl', 'hawk'];
+    const randomNum = Math.floor(Math.random() * 1000);
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    return `${adj}${noun}${randomNum}`;
+  };
+
   const validateForm = () => {
     const newErrors: Partial<FormData> = {};
     
@@ -72,7 +81,7 @@ const AuthPage: React.FC = () => {
           const roomResp = await fetch('/room', {
             method: 'POST',
             body: JSON.stringify({ 
-              username: formData.email.split('@')[0] // use email prefix as slug
+              username: generateRandomUsername()
             }),
             headers: {
               'Content-Type': 'application/json',
