@@ -1,6 +1,6 @@
 "use client";
 
-import { HomeIcon, MailIcon, PencilIcon } from "lucide-react";
+import { HomeIcon, MailIcon } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { SquareIcon, CircleIcon, DiamondIcon, ArrowRightIcon, LineChartIcon, MousePointerIcon, EraserIcon } from "lucide-react";
@@ -37,8 +37,7 @@ const Icons = {
 
 const DATA = {
   navbar: [
-    { href: "#", icon: HomeIcon, label: "Home" },
-    { href: "#", icon: PencilIcon, label: "Blog" },
+    { href: "/canvas/demo", icon: HomeIcon, label: "Home" },
   ],
   shapes: [
     { icon: Icons.rectangle, label: "rect" as Shape },

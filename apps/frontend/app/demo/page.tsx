@@ -54,7 +54,7 @@ export function DemoCanvas(){
     const [showCollabDialog, setShowCollabDialog] = useState(false);
     const [collabMode, setCollabMode] = useState<"create" | "join">("create");
     const [username, setUsername] = useState("");
-    const [roomId, setRoomId] = useState("");
+    // const [roomId, setRoomId] = useState("");
     const [roomSlug, setRoomSlug] = useState("");
 
     // Auth check via backend /me endpoint

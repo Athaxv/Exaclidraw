@@ -73,7 +73,23 @@ wss.on("connection", function connection(ws, request) {
 
         if (parsedData.type == "join_room") {
             const user = users.find(x => x.ws === ws)
-            user?.rooms.push(parsedData.roomId)
+            if (user) {
+                const roomId = parsedData.roomId;
+                user.rooms.push(roomId);
+                console.log(`User ${user.userId} joined room ${roomId}`);
+                
+                // Broadcast to all users in the room that someone joined
+                users.forEach(targetUser => {
+                    if (targetUser.rooms.includes(roomId) && targetUser.userId !== user.userId) {
+                        targetUser.ws.send(JSON.stringify({
+                            type: "user_joined",
+                            userId: user.userId,
+                            color: parsedData.cursorColor || null,
+                            roomId
+                        }));
+                    }
+                });
+            }
         }
 
         if (parsedData.type == "leave_room") {
@@ -129,10 +145,14 @@ wss.on("connection", function connection(ws, request) {
                 return;
             }
 
+            console.log(`User ${userId} sending cursor position in room ${roomId}`);
+
             // Broadcast cursor position to all users in the same room (except sender)
-            users.forEach(user => {
-                if (user.rooms.includes(roomId) && user.userId !== userId) {
-                    user.ws.send(JSON.stringify({
+            let broadcastCount = 0;
+            users.forEach(targetUser => {
+                if (targetUser.rooms.includes(roomId) && targetUser.userId !== userId) {
+                    broadcastCount++;
+                    targetUser.ws.send(JSON.stringify({
                         type: "cursor_position",
                         cursorData: {
                             ...cursorData,
@@ -141,7 +161,9 @@ wss.on("connection", function connection(ws, request) {
                         roomId
                     }))
                 }
-            })
+            });
+            
+            console.log(`Cursor position broadcasted to ${broadcastCount} users in room ${roomId}`);
         }
     })
 

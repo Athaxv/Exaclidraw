@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import { Mail, ArrowRight, ChevronLeft } from 'lucide-react';
+import { Mail, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from "sonner";
 
