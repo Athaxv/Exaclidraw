@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc -b",
     "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "postinstall": "npx prisma generate --schema=packages/db/prisma/schema.prisma"
   },
   "dependencies": {
     "@repo/db": "workspace:*",
