@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: http-backend
+    env: node
+    region: oregon
+    buildCommand: pnpm install && pnpm --filter http-backend run build
+    startCommand: cd apps/http-backend && pnpm run migrate:deploy && pnpm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /health
+
