@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "exports": {
-    "./types": "./dist/types.js"
+    "./types": "./dist/types.js",
+    "./package.json": "./package.json"
   },
   "types": "./dist/types.d.ts",
   "scripts": {

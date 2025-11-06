@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "exports": {
-    "./client": "./dist/index.js"
+    "./client": "./dist/index.js",
+    "./package.json": "./package.json"
   },
   "types": "./dist/index.d.ts",
   "scripts": {

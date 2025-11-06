@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "exports": {
-    "./config": "./dist/index.js"
+    "./config": "./dist/index.js",
+    "./package.json": "./package.json"
   },
   "types": "./dist/index.d.ts",
   "type": "module",
