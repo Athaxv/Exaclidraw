@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "exports": {
-    "./config": "./src/index.ts"
+    "./config": "./dist/index.js"
   },
+  "types": "./dist/index.d.ts",
   "type": "module",
   "scripts": {
     "build": "tsc -b",
