@@ -4,7 +4,13 @@
         "rootDir": "./src",
         "outDir": "./dist",
         "types": ["node"],
-        "incremental": true
+        "incremental": true,
+        "baseUrl": ".",
+        "paths": {
+            "@repo/common/*": ["../../packages/common/dist/*"],
+            "@repo/backend-common/*": ["../../packages/backend-common/dist/*"],
+            "@repo/db/*": ["../../packages/db-package/dist/*"]
+        }
     },
     "include": ["src"],
   "references": [
