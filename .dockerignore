@@ -1,0 +1,73 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+.next
+.turbo
+*.tsbuildinfo
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Documentation
+README.md
+*.md
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+__tests__
+coverage
+*.test.js
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Font files (not needed in Docker)
+apps/frontend/app/fonts/*.pdf
+apps/frontend/app/fonts/*.zip
+
+# Frontend specific (not needed for http-backend)
+apps/frontend
+apps/ws-backend
+
+# Docker files (don't copy Docker files into Docker image, except entrypoint scripts)
+Dockerfile/*.dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.*.yml
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Misc
+*.zip
+*.pdf
+

@@ -3,7 +3,7 @@ services:
     name: http-backend
     env: node
     region: oregon
-    buildCommand: pnpm install --no-frozen-lockfile && pnpm run build --filter=http-backend
+    buildCommand: pnpm install --no-frozen-lockfile && pnpm --filter http-backend run build
     startCommand: cd apps/http-backend && pnpm run migrate:deploy && pnpm start
     envVars:
       - key: DATABASE_URL
