@@ -2,6 +2,19 @@
     "extends": "@repo/typescript-config/base.json",
     "compilerOptions": {
         "rootDir": "./src",
-        "outDir": "./dist"
-    }
+        "outDir": "./dist",
+        "incremental": true,
+        "baseUrl": ".",
+        "paths": {
+            "@repo/backend-common": ["../../packages/backend-common/src/index.ts"],
+            "@repo/backend-common/*": ["../../packages/backend-common/src/*"],
+            "@repo/db": ["../../packages/db-package/src/index.ts"],
+            "@repo/db/*": ["../../packages/db-package/src/*"]
+        }
+    },
+    "include": ["src"],
+    "references": [
+        { "path": "../../packages/db-package" },
+        { "path": "../../packages/backend-common" }
+    ]
 }

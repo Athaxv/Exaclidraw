@@ -1,9 +1,24 @@
-import { WebSocketServer } from 'ws';
-import { JWT_SECRET } from '@repo/backend-common/config';
-import jwt from "jsonwebtoken"
-import { prismaClient } from "@repo/db/client"
+import { WebSocketServer } from "ws";
+import { JWT_SECRET } from "@repo/backend-common/config";
+import jwt from "jsonwebtoken";
+import { prismaClient } from "@repo/db";
 
-const wss = new WebSocketServer({ port: 8080 });
+const PORT = Number(process.env.WS_PORT ?? process.env.PORT ?? 8080);
+const wss = new WebSocketServer({ port: PORT });
+
+wss.on("listening", () => {
+    console.log(`ws-backend listening on port ${PORT}`);
+});
+
+wss.on("error", (err) => {
+    if ((err as NodeJS.ErrnoException).code === "EADDRINUSE") {
+        console.error(
+            `Port ${PORT} is already in use. Set WS_PORT or stop the other process.`
+        );
+        process.exit(1);
+    }
+    throw err;
+});
 
 import type { WebSocket as WsWebSocket } from 'ws';
 
