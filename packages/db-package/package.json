@@ -1,23 +1,21 @@
 {
   "name": "@repo/db",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    "./client": "./dist/index.js",
-    "./package.json": "./package.json"
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/client.js",
+      "types": "./dist/client.d.ts"
+    }
   },
-  "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -b",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc -b"
   },
-  "keywords": [],
-  "devDependencies": {
-    "@repo/typescript-config": "workspace:*"
-  },
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "@prisma/client": "6.15.0",
     "prisma": "^6.15.0"
