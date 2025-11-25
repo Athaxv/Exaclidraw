@@ -188,7 +188,7 @@ export function SmoothCursor({
       if (!showTrail) return;
 
       setTrail(function (prev) {
-        var newTrail = [pos].concat(prev.slice(0, trailLength - 1));
+        const newTrail = [pos].concat(prev.slice(0, trailLength - 1));
         return newTrail;
       });
     };

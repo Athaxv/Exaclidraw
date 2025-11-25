@@ -7,9 +7,9 @@
         "incremental": true,
         "baseUrl": ".",
         "paths": {
-            "@repo/common/*": ["../../packages/common/dist/*"],
-            "@repo/backend-common/*": ["../../packages/backend-common/dist/*"],
-            "@repo/db/*": ["../../packages/db-package/dist/*"]
+            "@repo/common/*": ["../../packages/common/src/*"],
+            "@repo/backend-common/*": ["../../packages/backend-common/src/*"],
+            "@repo/db/*": ["../../packages/db-package/src/*"]
         }
     },
     "include": ["src"],
