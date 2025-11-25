@@ -18,19 +18,28 @@
     RUN pnpm --filter=@repo/db run generate
     
     # ---------- Runtime ----------
-    FROM node:20-alpine AS runner
-    WORKDIR /app
-    
-    ENV NODE_ENV=production
-    ENV PORT=5000
-    
-    # Copy only what we need to run the backend
-    COPY --from=builder /app/apps/http-backend/dist ./apps/http-backend/dist
-    COPY --from=builder /app/node_modules ./node_modules
-    COPY --from=builder /app/packages ./packages
-    COPY --from=builder /app/package.json ./
-    
-    EXPOSE 5000
-    
-    CMD ["node", "apps/http-backend/dist/index.js"]
+        FROM node:20-alpine AS runner
+        WORKDIR /app
+        
+        ENV NODE_ENV=production
+        ENV PORT=5000
+        
+        # Install pnpm to install runtime-only deps
+        RUN npm install -g pnpm@9
+        
+        # Copy workspace metadata needed for pnpm install
+        COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+        COPY apps/http-backend/package.json ./apps/http-backend/
+        COPY packages ./packages
+        
+        # Install ONLY production dependencies for the backend
+        RUN pnpm install --prod --filter=http-backend...
+        
+        # Copy built app
+        COPY --from=builder /app/apps/http-backend/dist ./apps/http-backend/dist
+        
+        EXPOSE 5000
+        
+        CMD ["node", "apps/http-backend/dist/index.js"]
+        
     
