@@ -15,10 +15,5 @@
             "@repo/db/*": ["../../packages/db-package/src/*"]
         }
     },
-    "include": ["src"],
-  "references": [
-    { "path": "../../packages/db-package" },
-    { "path": "../../packages/backend-common" },
-    { "path": "../../packages/common" }
-  ]
+    "include": ["src"]
 }
