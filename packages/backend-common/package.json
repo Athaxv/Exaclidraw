@@ -17,6 +17,9 @@
     "@types/node": "^22.15.3"
   },
   "keywords": [],
+  "turbo": {
+    "outputs": ["dist/**"]
+  },
   "author": "",
   "license": "ISC",
   "description": ""

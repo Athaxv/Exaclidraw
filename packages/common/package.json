@@ -16,6 +16,9 @@
   "scripts": {
     "build": "tsc -b"
   },
+  "turbo": {
+    "outputs": ["dist/**"]
+  },
   "dependencies": {
     "zod": "^4.1.5"
   }
