@@ -11,6 +11,11 @@
     # Install deps (workspace-aware)
     RUN pnpm install --frozen-lockfile
     
+    # Build shared packages first so their type declarations exist
+    RUN pnpm --filter=@repo/common run build \
+        && pnpm --filter=@repo/backend-common run build \
+        && pnpm --filter=@repo/db run build
+
     # Build only http-backend and its dependency graph
     RUN pnpm turbo run build --filter=http-backend...
     
