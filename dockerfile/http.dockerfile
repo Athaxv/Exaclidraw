@@ -12,7 +12,7 @@
     RUN pnpm install --frozen-lockfile
     
     # Build only http-backend and its dependency graph
-    RUN pnpm turbo run build --filter=apps/http-backend...
+    RUN pnpm turbo run build --filter=http-backend...
     
     # Generate Prisma client after build
     RUN pnpm --filter=@repo/db run generate
