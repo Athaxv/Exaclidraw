@@ -59,6 +59,9 @@ apps/ws-backend
 
 # Docker files (don't copy Docker files into Docker image, except entrypoint scripts)
 Dockerfile/*.dockerfile
+dockerfile/*.dockerfile
+# Explicitly allow entrypoint scripts
+!dockerfile/docker-entrypoint.sh
 .dockerignore
 docker-compose.yml
 docker-compose.*.yml
