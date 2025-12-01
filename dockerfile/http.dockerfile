@@ -2,49 +2,41 @@
     FROM node:20-alpine AS builder
     WORKDIR /app
     
-    # Install pnpm
     RUN npm install -g pnpm@9
     
-    # Copy everything (Render root context)
+    # Copy workspace metadata first (better caching)
+    COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+    
+    # Copy full monorepo
     COPY . .
     
-    # Install deps (workspace-aware)
+    # Install all workspace deps
     RUN pnpm install --frozen-lockfile
     
-    # Build shared packages first so their type declarations exist
-    RUN pnpm --filter=@repo/common run build \
-        && pnpm --filter=@repo/backend-common run build \
-        && pnpm --filter=@repo/db run build
-
-    # Build only http-backend and its dependency graph
-    RUN pnpm turbo run build --filter=http-backend...
-    
-    # Generate Prisma client after build
+    # Generate Prisma client BEFORE build
     RUN pnpm --filter=@repo/db run generate
     
+    # Build EVERYTHING (packages + apps exactly in correct order)
+    RUN pnpm turbo run build
+    
     # ---------- Runtime ----------
-        FROM node:20-alpine AS runner
-        WORKDIR /app
-        
-        ENV NODE_ENV=production
-        ENV PORT=5000
-        
-        # Install pnpm to install runtime-only deps
-        RUN npm install -g pnpm@9
-        
-        # Copy workspace metadata needed for pnpm install
-        COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-        COPY apps/http-backend/package.json ./apps/http-backend/
-        COPY packages ./packages
-        
-        # Install ONLY production dependencies for the backend
-        RUN pnpm install --prod --filter=http-backend...
-        
-        # Copy built app
-        COPY --from=builder /app/apps/http-backend/dist ./apps/http-backend/dist
-        
-        EXPOSE 5000
-        
-        CMD ["node", "apps/http-backend/dist/index.js"]
-        
+    FROM node:20-alpine AS runner
+    WORKDIR /app
+    ENV NODE_ENV=production
+    ENV PORT=5000
+    
+    RUN npm install -g pnpm@9
+    
+    # Copy root metadata for pnpm install
+    COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+    
+    # Copy only necessary built packages + app
+    COPY --from=builder /app/packages ./packages
+    COPY --from=builder /app/apps/http-backend ./apps/http-backend
+    
+    # Install ONLY production deps
+    RUN pnpm install --prod --frozen-lockfile
+    
+    EXPOSE 5000
+    CMD ["node", "apps/http-backend/dist/index.js"]
     
