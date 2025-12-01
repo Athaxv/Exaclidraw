@@ -6,14 +6,6 @@
         "types": ["node"],
         "incremental": true,
         "baseUrl": ".",
-        "paths": {
-            "@repo/common": ["../../packages/common/src/index.ts"],
-            "@repo/common/*": ["../../packages/common/src/*"],
-            "@repo/backend-common": ["../../packages/backend-common/src/index.ts"],
-            "@repo/backend-common/*": ["../../packages/backend-common/src/*"],
-            "@repo/db": ["../../packages/db-package/src/index.ts"],
-            "@repo/db/*": ["../../packages/db-package/src/*"]
-        }
     },
     "include": ["src"]
 }
