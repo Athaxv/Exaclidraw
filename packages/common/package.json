@@ -7,7 +7,7 @@
       "./types": "./src/types.js"
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b tsconfig.build.json"
   },
   "turbo": {
     "outputs": ["dist/**"]

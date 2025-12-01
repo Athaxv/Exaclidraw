@@ -11,7 +11,7 @@
   },
   "type": "module",
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b tsconfig.build.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
