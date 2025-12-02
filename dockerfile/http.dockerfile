@@ -30,7 +30,9 @@
     
     # Copy full built output
     COPY --from=builder /app ./
-    
+
+    COPY --from=builder /app/packages/db-package/generated ./packages/db-package/generated
+
     # Install only production deps
     RUN pnpm install --prod --frozen-lockfile
     
