@@ -55,7 +55,6 @@ apps/frontend/app/fonts/*.zip
 
 # Frontend specific (not needed for http-backend)
 apps/frontend
-apps/ws-backend
 
 # Docker files (don't copy Docker files into Docker image, except entrypoint scripts)
 Dockerfile/*.dockerfile
