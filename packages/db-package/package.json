@@ -13,7 +13,8 @@
   "scripts": {
     "generate": "prisma generate --schema=./prisma/schema.prisma",
     "prebuild": "pnpm run generate",
-    "build": "tsc -b tsconfig.build.json"
+    "build": "tsc -b tsconfig.build.json",
+    "postbuild": "node ./scripts/copy-prisma.cjs"
   },
   "turbo": {
     "outputs": ["dist/**", "generated/**"]
