@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {}
+  },
+  "references": [
+    { "path": "../../packages/common" },
+    { "path": "../../packages/backend-common" },
+    { "path": "../../packages/db-package" }
+  ]
+}
+

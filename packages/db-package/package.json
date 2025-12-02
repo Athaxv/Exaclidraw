@@ -1,9 +1,14 @@
 {
   "name": "@repo/db",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "exports": {
-    "./index": "./src/index.ts"
+    ".": {
+      "import": "./dist/src/index.js",
+      "require": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    }
   },
   "scripts": {
     "build": "tsc -b",
