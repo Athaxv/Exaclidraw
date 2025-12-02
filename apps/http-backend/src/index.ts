@@ -1,11 +1,11 @@
 import express from "express"
 // Update the import path below to the correct relative or package path where your types are defined
 // Update the import path below to the correct relative or package path where your types are defined
-import { signinSchema, createUserSchema, createRoomSchema } from "@repo/common/types";
-import { prismaClient } from "@repo/db"
+import { signinSchema, createUserSchema, createRoomSchema } from "@repo/common/index";
+import { prismaClient } from "@repo/db/index"
 import { middleware } from "./middleware.js";
 import jwt from "jsonwebtoken"
-import { JWT_SECRET } from "@repo/backend-common";
+import { JWT_SECRET } from "@repo/backend-common/index";
 import cors from "cors";
 
 const app = express()

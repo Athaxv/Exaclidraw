@@ -1,11 +1,3 @@
 {
-    "extends": "../../packages/typescript-config/base.json",
-    "compilerOptions": {
-        "composite": true,
-        "incremental": true,
-        "rootDir": "./src",
-        "outDir": "./dist",
-        "types": ["node"]
-    },
-    "include": ["src"]
-}
+    "extends": "@repo/typescript-config/base.json",
+  }

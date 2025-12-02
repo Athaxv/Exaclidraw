@@ -1,11 +1,12 @@
 {
     "extends": "../../packages/typescript-config/base.json",
     "compilerOptions": {
-        "rootDir": "./src",
-        "outDir": "./dist",
-        "types": ["node"],
-        "incremental": true,
-        "baseUrl": ".",
+      "rootDir": "./src",
+      "outDir": "./dist",
+      "types": ["node"],
+      "incremental": true,
+      "baseUrl": ".",
     },
     "include": ["src"]
-}
+  }
+  

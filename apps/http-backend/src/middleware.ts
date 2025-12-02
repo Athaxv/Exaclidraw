@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken"
-import { JWT_SECRET } from "@repo/backend-common";
+import { JWT_SECRET } from "@repo/backend-common/index";
 
 // Extend Express Request interface to include userId
 declare global {

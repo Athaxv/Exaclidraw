@@ -1,16 +1,12 @@
 {
   "name": "@repo/db",
   "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "index.js",
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+    "./index": "./src/index.ts"
   },
   "scripts": {
-    "build": "tsc -b tsconfig.build.json",
+    "build": "tsc -b",
     "generate": "prisma generate"
   },
   "turbo": {
