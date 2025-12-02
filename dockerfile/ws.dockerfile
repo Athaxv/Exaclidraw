@@ -25,7 +25,7 @@
     RUN pnpm --filter=@repo/common run build
     
     # Build ONLY ws-backend
-    RUN pnpm --filter=ws-backend... run build
+    RUN pnpm --filter=ws-backend run build
     
     # ---------- Runtime Image ----------
     FROM node:20-alpine AS runner
