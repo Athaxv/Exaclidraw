@@ -3,7 +3,14 @@ import React from 'react'
 import { BACKEND_URL } from '../config';
 import { ChatRoom } from '../../../components/ChatRoom';
 
-async function getRoomId(slug: string){
+interface RoomPageParams {
+  params: {
+    slug: string;
+  };
+}
+
+async function getRoomId({ params }: RoomPageParams){
+  const { slug } = params;
     try {
       const response = await axios.get(`${BACKEND_URL}/room/${slug}`)
     if (!response.data.room) {
@@ -16,9 +23,8 @@ async function getRoomId(slug: string){
     }
 }
 
-async function Chat({ params }: { params: { slug: string }}) {
-    const slug = params.slug
-    const roomId = await getRoomId(slug);
+async function Chat({ params }: RoomPageParams) {
+    const roomId = await getRoomId({ params });
     
   return (
     <div>

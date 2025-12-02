@@ -6,7 +6,7 @@ import localFont from "next/font/local";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 
-export const excalifont = localFont({
+const excalifont = localFont({
   src: "./fonts/excalifont-Regular.woff2",
   display: "swap",
   variable: "--font-excalifont",

@@ -1,5 +1,5 @@
 "use client";
-import { initDemoDraw,  } from "@/draw";
+import { initDemoDraw } from "@/draw";
 import { useEffect, useRef, useState } from "react";
 import { Dockbar } from "@/components/Dockbar";
 import {
