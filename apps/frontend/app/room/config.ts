@@ -1,2 +1,2 @@
-export const WS_URL = "http://localhost:8080";
-export const BACKEND_URL = "http://localhost:5000";
+export const WS_URL = "https://exaclidraw-5.onrender.com";
+export const BACKEND_URL = "https://exaclidraw-4.onrender.com";
