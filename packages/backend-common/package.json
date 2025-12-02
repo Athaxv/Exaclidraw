@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b tsconfig.build.json"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
