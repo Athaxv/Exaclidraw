@@ -1,4 +1,4 @@
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { JWT_SECRET } from "@repo/backend-common";
 import jwt from "jsonwebtoken";
 import { prismaClient } from "@repo/db";
@@ -20,10 +20,8 @@ wss.on("error", (err) => {
     throw err;
 });
 
-import type { WebSocket as WsWebSocket } from 'ws';
-
 interface User {
-    ws: WsWebSocket,
+    ws: WebSocket,
     rooms: string[],
     userId: string
 }
@@ -116,7 +114,7 @@ wss.on("connection", function connection(ws, request) {
         }
 
         if (parsedData.type == "chat") {
-            const roomId = parsedData.roomId
+            const roomId = parsedData.roomId;
             const message = parsedData.message;
 
             const user = users.find(x => x.ws === ws);
@@ -127,24 +125,39 @@ wss.on("connection", function connection(ws, request) {
                 return;
             }
 
+            const numericRoomId = Number(roomId);
+            if (!Number.isFinite(numericRoomId)) {
+                console.warn(`Invalid roomId "${roomId}" provided for chat message.`);
+                return;
+            }
 
-            await prismaClient.chat.create({
-                data: {
-                    message,
-                    userId,
-                    roomId: Number(roomId)
-                }
-            })
+            try {
+                await prismaClient.chat.create({
+                    data: {
+                        message,
+                        userId,
+                        roomId: numericRoomId
+                    }
+                });
 
-            users.forEach(user => {
-                if (user.rooms.includes(roomId)) {
-                    user.ws.send(JSON.stringify({
-                        type: "chat",
-                        message: message,
-                        roomId
-                    }))
+                users.forEach(user => {
+                    if (user.rooms.includes(roomId)) {
+                        user.ws.send(JSON.stringify({
+                            type: "chat",
+                            message: message,
+                            roomId
+                        }))
+                    }
+                });
+            } catch (error) {
+                console.error("Failed to persist chat payload:", error);
+                if (ws.readyState === ws.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: "error",
+                        message: "Unable to persist message"
+                    }));
                 }
-            })
+            }
 
         }
 
