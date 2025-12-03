@@ -1,5 +1,5 @@
 import axios from "axios";
-import { HTTP_BACKEND } from "../config";
+import { HTTP_BACKEND } from "@/config";
 import { ChatRoomClient } from "./ChatRoomClient";
 
 async function getChats(roomId: string){

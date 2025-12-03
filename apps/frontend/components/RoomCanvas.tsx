@@ -3,7 +3,7 @@
 import { initDraw } from "@/draw";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { Dockbar } from "./Dockbar";
-import { WS_URL } from "@/config";
+import { HTTP_BACKEND, WS_URL } from "@/config";
 import {
   Sidebar,
   SidebarContent,
@@ -63,6 +63,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
 
     // Collaborative cursor state
     const [otherUsersCursors, setOtherUsersCursors] = useState<Map<string, CursorData>>(new Map());
+    const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
     const [myCursorColor, setMyCursorColor] = useState<string>("");
     const [myCursorPosition, setMyCursorPosition] = useState<{x: number, y: number} | null>(null);
     const cursorThrottleRef = useRef<NodeJS.Timeout | null>(null);
@@ -116,38 +117,38 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
     }, []);
 
     useEffect(() => {
-        if (canvasRef.current) {
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext("2d")
-            
-            if (!ctx) {
-                return;
-            }
-
-            // Set canvas size to fill the container
-            const resizeCanvas = () => {
-                const container = canvas.parentElement;
-                if (container) {
-                    canvas.width = container.clientWidth;
-                    canvas.height = container.clientHeight;
-                }
-            };
-
-            // Initial resize
-            resizeCanvas();
-            
-            // Resize on window resize
-            window.addEventListener('resize', resizeCanvas);
-            
-            // Initialize drawing with socket and theme
-            if (socket) {
-                initDraw(canvas, roomId, socket, theme);
-            }
-            
-            return () => {
-                window.removeEventListener('resize', resizeCanvas);
-            };
+        const canvas = canvasRef.current;
+        if (!canvas) {
+            return;
         }
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+            return;
+        }
+
+        // Set canvas size to fill the container
+        const resizeCanvas = () => {
+            const container = canvas.parentElement;
+            if (container) {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+            }
+        };
+
+        // Initial resize
+        resizeCanvas();
+        
+        // Resize on window resize
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Initialize drawing with socket and theme
+        const disposeDraw = socket ? initDraw(canvas, roomId, socket, theme) : undefined;
+        
+        return () => {
+            window.removeEventListener('resize', resizeCanvas);
+            disposeDraw?.();
+        };
     }, [canvasRef, roomId, socket, theme])
 
     // WebSocket connection
@@ -274,6 +275,17 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
         return () => clearInterval(cleanupInterval);
     }, []);
 
+    // Derive collaborator list only when membership changes
+    useEffect(() => {
+        const sortedIds = Array.from(otherUsersCursors.keys()).sort();
+        setCollaboratorIds((prev) => {
+            if (prev.length === sortedIds.length && prev.every((id, idx) => id === sortedIds[idx])) {
+                return prev;
+            }
+            return sortedIds;
+        });
+    }, [otherUsersCursors]);
+
     // Track mouse movement for cursor broadcasting
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -307,7 +319,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
             return userAvatarMap.current.get(userId)!;
         };
         
-        const avatars = Array.from(otherUsersCursors.entries()).map(([userId]) => ({
+        const avatars = collaboratorIds.map((userId) => ({
             imageUrl: getRandomAvatar(userId),
             profileUrl: `#user-${userId}`
         }));
@@ -322,14 +334,14 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
         
         console.log('Collaborator avatars generated:', avatars.length, 'avatars');
         return avatars;
-    }, [otherUsersCursors, userData?.userId]);
+    }, [collaboratorIds, userData?.userId]);
 
     // Authentication check function
     const checkAuth = async () => {
         try {
             const token = localStorage.getItem('auth_token') || '';
             if (!token) return false;
-            const res = await fetch('http://localhost:5000/me', { 
+            const res = await fetch(`${HTTP_BACKEND}/me`, { 
                 headers: { Authorization: token }
             });
             if (res.ok) {
@@ -350,7 +362,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
         try {
             setLoadingRooms(true);
             const token = localStorage.getItem('auth_token') || '';
-            const res = await fetch('http://localhost:5000/rooms', {
+            const res = await fetch(`${HTTP_BACKEND}/rooms`, {
                 headers: { Authorization: token }
             });
             if (res.ok) {

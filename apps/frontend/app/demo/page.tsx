@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { HTTP_BACKEND } from "@/config";
 
 type Shape = "rect" | "diamond" | "circle" | "pencil" | "arrow" | "free" | "text" | "eraser";
 
@@ -62,7 +63,7 @@ export function DemoCanvas(){
         try {
             const token = localStorage.getItem('auth_token') || '';
             if (!token) return false;
-            const res = await fetch('http://localhost:5000/me', { 
+            const res = await fetch(`${HTTP_BACKEND}/me`, { 
                 headers: { Authorization: token }
             });
             if (res.ok) {
@@ -82,7 +83,7 @@ export function DemoCanvas(){
         try {
             setLoadingRooms(true);
             const token = localStorage.getItem('auth_token') || '';
-            const res = await fetch('http://localhost:5000/rooms', {
+            const res = await fetch(`${HTTP_BACKEND}/rooms`, {
                 headers: { Authorization: token }
             });
             if (res.ok) {

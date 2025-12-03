@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { WS_URL } from "../app/room/config";
+import { WS_URL } from "@/config";
 
 export function useSocket(){
     const [loading, setLoading] = useState(true);

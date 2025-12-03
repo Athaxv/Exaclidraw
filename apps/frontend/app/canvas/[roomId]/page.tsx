@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import RoomCanvas from "@/components/RoomCanvas";
+import { HTTP_BACKEND } from "@/config";
 
 export default function CanvasPage({ params }:{
     params: Promise<{
@@ -31,7 +32,7 @@ export default function CanvasPage({ params }:{
             }
 
             try {
-                const res = await fetch('http://localhost:5000/me', {
+                const res = await fetch(`${HTTP_BACKEND}/me`, {
                     headers: { Authorization: token }
                 });
 

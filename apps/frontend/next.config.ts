@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+const backendRewriteTarget =
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ||
+  "https://exaclidraw-4.onrender.com";
+
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -17,15 +21,15 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/auth/v1/:path*",
-        destination: "http://localhost:5000/auth/v1/:path*",
+        destination: `${backendRewriteTarget}/auth/v1/:path*`,
       },
       {
         source: "/room/:path*",
-        destination: "http://localhost:5000/room/:path*",
+        destination: `${backendRewriteTarget}/room/:path*`,
       },
       {
         source: "/chat/:path*",
-        destination: "http://localhost:5000/chat/:path*",
+        destination: `${backendRewriteTarget}/chat/:path*`,
       },
     ];
   },

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import React from 'react'
-import { BACKEND_URL } from '../config';
-import { ChatRoom } from '../../../components/ChatRoom';
+import { BACKEND_URL } from "@/config";
+import { ChatRoom } from "@/components/ChatRoom";
 
 interface RoomPageParams {
   params: {

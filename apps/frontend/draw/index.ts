@@ -140,36 +140,67 @@ function findShapeAtPoint(x: number, y: number, shapes: Shape[], ctx: CanvasRend
     return null;
 }
 
-export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket, theme: string = 'light') {
+export function initDraw(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket, theme: string = 'light') {
     const ctx = canvas.getContext("2d");
-    const existingShapes: Shape[] = await getExistingShapes(roomId);
-
-    // console.log(existingShapes)
 
     if (!ctx) {
         throw new Error("Failed to get 2D context from canvas.");
     }
+
     const renderCtx = ctx as CanvasRenderingContext2D;
+    const existingShapes: Shape[] = [];
+    let isDisposed = false;
 
-    socket.onmessage = (event) => {
-        const message = JSON.parse(event.data);
+    const hydrateShapes = async () => {
+        try {
+            const shapes = await getExistingShapes(roomId);
+            if (isDisposed) return;
+            existingShapes.splice(0, existingShapes.length, ...shapes);
+            clearCanvas(canvas, existingShapes, ctx, theme);
+        } catch (error) {
+            console.error("Failed to fetch existing shapes:", error);
+        }
+    };
 
-        if (message.type === "chat") {
-            const parsedChat = JSON.parse(message.message);
-            
-            if (parsedChat.action === "erase" && parsedChat.shapeIndex !== undefined) {
-                // Handle eraser action from other clients
-                if (parsedChat.shapeIndex >= 0 && parsedChat.shapeIndex < existingShapes.length) {
-                    existingShapes.splice(parsedChat.shapeIndex, 1);
+    hydrateShapes();
+
+    const sendMessage = (payload: unknown) => {
+        if (socket.readyState !== WebSocket.OPEN) {
+            console.warn("WebSocket is not open. Dropping draw payload.");
+            return;
+        }
+        socket.send(JSON.stringify(payload));
+    };
+
+    const handleShapeMessage = (event: MessageEvent) => {
+        if (isDisposed) {
+            return;
+        }
+
+        try {
+            const message = JSON.parse(event.data);
+
+            if (message.type === "chat") {
+                const parsedChat = JSON.parse(message.message);
+                
+                if (parsedChat.action === "erase" && parsedChat.shapeIndex !== undefined) {
+                    // Handle eraser action from other clients
+                    if (parsedChat.shapeIndex >= 0 && parsedChat.shapeIndex < existingShapes.length) {
+                        existingShapes.splice(parsedChat.shapeIndex, 1);
+                        clearCanvas(canvas, existingShapes, ctx, theme);
+                    }
+                } else if (parsedChat.shape) {
+                    // Handle new shape creation
+                    existingShapes.push(parsedChat.shape);
                     clearCanvas(canvas, existingShapes, ctx, theme);
                 }
-            } else if (parsedChat.shape) {
-                // Handle new shape creation
-                existingShapes.push(parsedChat.shape);
-                clearCanvas(canvas, existingShapes, ctx, theme);
             }
+        } catch (error) {
+            console.error("Failed to process incoming draw message:", error);
         }
-    }
+    };
+
+    socket.addEventListener("message", handleShapeMessage);
 
     clearCanvas(canvas, existingShapes, ctx, theme);
 
@@ -252,14 +283,14 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
                     clearCanvas(canvas, existingShapes, ctx, theme);
                     
                     // Send eraser action to other clients
-                    socket.send(JSON.stringify({
+                    sendMessage({
                         type: "chat",
                         message: JSON.stringify({
                             action: "erase",
                             shapeIndex: shapeIndex
                         }),
                         roomId
-                    }));
+                    });
                 }
             }
             return;
@@ -355,13 +386,13 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
 
         existingShapes.push(shape);
 
-        socket.send(JSON.stringify({
+        sendMessage({
             type: "chat",
             message: JSON.stringify({
                 shape
             }),
             roomId
-        }))
+        });
     })
     canvas.addEventListener("mousemove", (e) => {
         if (clicked && !isTyping) {
@@ -467,11 +498,11 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
             if (val.length > 0) {
                 const textShape: Shape = { type: "text", x: typingX, y: typingY, text: val };
                 existingShapes.push(textShape);
-                socket.send(JSON.stringify({
+                sendMessage({
                     type: "chat",
                     message: JSON.stringify({ shape: textShape }),
                     roomId
-                }));
+                });
                 clearCanvas(canvas, existingShapes, ctx, theme);
             }
             typingBuffer = "";
@@ -499,7 +530,12 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         }
         // Preview current typing without committing
         renderAll();
-    })
+    });
+
+    return () => {
+        isDisposed = true;
+        socket.removeEventListener("message", handleShapeMessage);
+    };
 }
 
 export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDrawOptions, theme: string = 'light') {
