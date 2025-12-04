@@ -121,36 +121,38 @@ export function DemoCanvas(){
     };
 
     useEffect(() => {
-        if (canvasRef.current){
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext("2d")
-            
-            if (!ctx){
-                return;
-            }
-
-            // Set canvas size to fill the container
-            const resizeCanvas = () => {
-                const container = canvas.parentElement;
-                if (container) {
-                    canvas.width = container.clientWidth;
-                    canvas.height = container.clientHeight;
-                }
-            };
-
-            // Initial resize
-            resizeCanvas();
-            
-            // Resize on window resize
-            window.addEventListener('resize', resizeCanvas);
-            
-            initDemoDraw(canvas);
-            
-            return () => {
-                window.removeEventListener('resize', resizeCanvas);
-            };
+        const canvas = canvasRef.current;
+        if (!canvas) {
+            return;
         }
-    }, [canvasRef])
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+            return;
+        }
+
+        // Set canvas size to fill the container
+        const resizeCanvas = () => {
+            const container = canvas.parentElement;
+            if (container) {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+            }
+        };
+
+        // Initial resize
+        resizeCanvas();
+        
+        // Resize on window resize
+        window.addEventListener('resize', resizeCanvas);
+        
+        const disposeDemoDraw = initDemoDraw(canvas, undefined, theme);
+        
+        return () => {
+            window.removeEventListener('resize', resizeCanvas);
+            disposeDemoDraw?.();
+        };
+    }, [theme])
 
     return (
         <SidebarProvider defaultOpen={false}>

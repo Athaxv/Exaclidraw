@@ -538,7 +538,7 @@ export function initDraw(canvas: HTMLCanvasElement, roomId: string, socket: WebS
     };
 }
 
-export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDrawOptions, theme: string = 'light') {
+export function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDrawOptions, theme: string = 'light') {
     const ctx = canvas.getContext("2d");
     const DemoexistingShapes: Shape[] = [];
     const opts = { ...defaultDemoDrawOptions, ...(options || {}) };
@@ -606,7 +606,8 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
         caretVisible = false;
     }
     let freeDrawPoints: { x: number; y: number }[] = [];
-    canvas.addEventListener("mousedown", (e) => {
+
+    const handleMouseDown = (e: MouseEvent) => {
         //@ts-expect-error - selectedShape is set on window object
         const selectedShape = window.selectedShape;
         if (selectedShape !== "text" && isTyping) {
@@ -647,26 +648,13 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
             clicked = true;
             return;
         }
-        
-        if (selectedShape === "text") {
-            // Enter text-typing mode at the clicked position
-            isTyping = true;
-            typingBuffer = "";
-            typingX = e.clientX;
-            typingY = e.clientY;
-            DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts, theme);
-            const textColor = theme === 'dark' ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 1)";
-            ctx.fillStyle = textColor;
-            ctx.font = "40px Virgil, sans-serif";
-            ctx.textBaseline = "top";
-            return; // don't start drag while typing
-        }
-        
+
         clicked = true;
         startX = e.clientX;
         startY = e.clientY;
-    })
-    canvas.addEventListener("mouseup", (e) => {
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
         clicked = false;
         const width = e.clientX - startX;
         const height = e.clientY - startY;
@@ -733,10 +721,9 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
         DemoexistingShapes.push(shape);
         // Redraw with the newly added shape
         DemoClearCanvas(canvas, DemoexistingShapes, ctx, opts, theme);
-    })
+    };
 
-    // Draw preview while dragging without losing previous shapes
-    canvas.addEventListener("mousemove", (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
         if (clicked && !isTyping) {
             const width = e.clientX - startX;
             const height = e.clientY - startY;
@@ -828,10 +815,9 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
                 }
             }
         }
-    })
+    };
 
-    // Keyboard-driven text entry when in typing mode
-    window.addEventListener("keydown", (ke) => {
+    const handleKeyDown = (ke: KeyboardEvent) => {
         if (!isTyping) return;
         if (ke.key === "Enter") {
             ke.preventDefault();
@@ -865,7 +851,20 @@ export async function initDemoDraw(canvas: HTMLCanvasElement, options?: DemoDraw
         }
         // Preview current typing without committing
         renderAll();
-    })
+    };
+
+    canvas.addEventListener("mousedown", handleMouseDown);
+    canvas.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+        stopCaretBlink();
+        canvas.removeEventListener("mousedown", handleMouseDown);
+        canvas.removeEventListener("mouseup", handleMouseUp);
+        canvas.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("keydown", handleKeyDown);
+    };
 }
 
 function DemoClearCanvas(
