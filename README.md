@@ -4,6 +4,9 @@ A **real-time collaborative whiteboard** built with a modern full-stack architec
 
 ---
 
+<img width="1412" height="724" alt="Screenshot 2025-11-23 225429" src="https://github.com/user-attachments/assets/385093d9-db25-43d3-b7ef-eb785c22c6b1" />
+
+
 ## 🧠 About
 
 Exaclidraw is a real-time collaborative drawing application that lets users create and edit shapes, draw freehand, and collaborate with others live in shared rooms. It’s designed for brainstorming, presentations, team collaboration, and interactive sessions — all in the browser.
